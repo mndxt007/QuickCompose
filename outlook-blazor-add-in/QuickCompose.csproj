@@ -5,6 +5,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TargetOfficeVersion>15.0</TargetOfficeVersion>
+	  <PublishTrimmed>false</PublishTrimmed>
+	  <RunAOTCompilation>false</RunAOTCompilation>
+	  <WasmEmitSymbolMap>false</WasmEmitSymbolMap>
+	  <WasmNativeStrip>false</WasmNativeStrip>
   </PropertyGroup>
 
   <ItemGroup>

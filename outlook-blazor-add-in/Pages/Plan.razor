@@ -72,7 +72,7 @@
 
     public async Task<IEnumerable<Message>> GetEmailThreads()
     {
-        var days = 10;
+        var days = 2;
         var dateTimeStr = DateTime.UtcNow.Subtract(TimeSpan.FromDays(days)).ToString("yyyy-MM-dd");
         var filter = $"receivedDateTime gt {dateTimeStr}";
 
@@ -109,16 +109,27 @@ Email starts here\n\n";
 
         foreach (var message in messages)
         {
-            bool isSentItem = String.Equals(message.Sender.EmailAddress.Address, "AlexW@M365B289354.onmicrosoft.com", StringComparison.OrdinalIgnoreCase);
-            var emailText = await JSModule.InvokeAsync<string>("html2text", message.Body.Content, true);
-            var prompt = String.Format(promptTemplate, string.Concat(String.Format(instruction, isSentItem ? "Sent Item" : "Inbox") + $"The email is from: {message.From.EmailAddress.Name}" + emailText));
-            var jsonResponse = await openAIService.GetResponse(prompt);
-            Console.WriteLine(jsonResponse);
-            var plan = JsonSerializer.Deserialize<PlanModel>(jsonResponse);
-            viewModels.Add(new() { Message = message, Plan = plan });
+            try
+            {
+                //don't put hardcoded email
+                bool isSentItem = String.Equals(message?.Sender.EmailAddress.Address, "leeg@m365b289354.onmicrosoft.com", StringComparison.OrdinalIgnoreCase);
+                var emailText = await JSModule.InvokeAsync<string>("html2text", message.Body.Content, true);
+                var prompt = String.Format(promptTemplate, string.Concat(String.Format(instruction, isSentItem ? "Sent Item" : "Inbox") + $"The email is from: {message.From.EmailAddress.Name}" + emailText));
+                var jsonResponse = await openAIService.GetResponse(prompt);
+                Console.WriteLine(jsonResponse);
+                var plan = JsonSerializer.Deserialize<PlanModel>(jsonResponse);
+                viewModels.Add(new() { Message = message, Plan = plan });
+                StateHasChanged();
+            }
+            catch (Exception e)
+            {
+
+                Console.WriteLine(e.ToString());
+            }
+            
         }
 
-        StateHasChanged();
+       
     }
 
     public class PlanModel

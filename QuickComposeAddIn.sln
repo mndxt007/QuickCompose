@@ -14,12 +14,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		images\Connect.png = images\Connect.png
 		README.md = README.md
+		Setup.md = Setup.md
 		images\StartAction.png = images\StartAction.png
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnonymizerAPI", "AnonymizerAPI\AnonymizerAPI.csproj", "{595C58EF-B1FB-4089-B378-929BDE4DF789}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SupportAPI", "SupportAPI\SupportAPI.csproj", "{34896845-5A46-4C72-9292-E745ADC31B6A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SupportAPI", "SupportAPI\SupportAPI.csproj", "{34896845-5A46-4C72-9292-E745ADC31B6A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
