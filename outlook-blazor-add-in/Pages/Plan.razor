@@ -1,4 +1,5 @@
 ﻿@using System.Security.Authentication
+@using Microsoft.AspNetCore.Authorization;
 @using Microsoft.Graph
 @using Microsoft.Graph.Models
 @using QuickCompose.Services;
@@ -17,28 +18,98 @@
             {
                 <div class="col">
                     <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">@model.Message.Subject</h5>
+                        <div class="card-body my-3">
+                            <h5 class="card-title text-primary" s>@model.Message.Subject</h5>
                             <h6 class="card-subtitle mb-2 text-muted"> @model.Message.ReceivedDateTime.GetValueOrDefault().UtcDateTime</h6>
-                            <p class="card-text"> @((MarkupString)model.Message.BodyPreview)</p>
-
-                            <p class="card-text">@model.Plan.Action</p>
-                            <p class="card-text">@model.Plan.Response</p>
-                            <p class="card-text">@model.Plan.Sentiment</p>
-                            <p class="card-text">@model.Plan.Priority</p>
-                            <a class="btn btn-primary" href="@model.Message.WebLink" target="_blank">Open in Browser</a>
-                            @{
-                                var link = "https://onesupport.crm.dynamics.com/main.aspx?appid=101acb62-8d00-eb11-a813-000d3a8b3117&pagetype=search&searchText=" + @model.Message.Subject.Split("TrackingID#").LastOrDefault();
-                            }
-                            <a class="btn btn-primary" href="@link" target="_blank">Open in DfM</a>
+                            <div class="card child-card">
+                                <div class="card-content">
+                                    <div class="card-body">
+                                        <pre class="card-text p-3 border"> @((MarkupString)model.Message.BodyPreview)</pre>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xl-3 col-sm-6 col-12">
+                                    <div class="card child-card">
+                                        <div class="card-content">
+                                            <div class="card-body">
+                                                <div class="media d-flex justify-content-between">
+                                                    <div class="media-body text-left">
+                                                        <h3 class="text-white">@model.Plan.Action</h3>
+                                                        <span>Action</span>
+                                                    </div>
+                                                    <div class="align-self-center">
+                                                        <i class="fa fa-tasks fa-2x" style="color:springgreen;"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-sm-6 col-12">
+                                    <div class="card child-card">
+                                        <div class="card-content">
+                                            <div class="card-body">
+                                                <div class="media d-flex justify-content-between">
+                                                    <div class="media-body text-left">
+                                                        <h3 class="text-white">@model.Plan.Sentiment</h3>
+                                                        <span>Sentiment</span>
+                                                    </div>
+                                                    <div class="align-self-center">
+                                                        <i class="fa fa-heartbeat fa-2x" style="color:red;"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-sm-6 col-12">
+                                    <div class="card child-card">
+                                        <div class="card-content">
+                                            <div class="card-body">
+                                                <div class="media d-flex justify-content-between">
+                                                    <div class="media-body text-left">
+                                                        <h3 class="text-white">@model.Plan.Priority</h3>
+                                                        <span>Priority</span>
+                                                    </div>
+                                                    <div class="align-self-center">
+                                                        <i class="fa fa-exclamation-triangle fa-2x" style="color:deepskyblue;"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="card child-card">
+                                        <div class="card-content">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Suggested Response</h5>
+                                                <pre>@model.Plan.Response</pre>
+                                                <CopyToClipboard TextToCopy="@model.Plan.Response" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-grid gap-2 col-6 mx-auto pt-2">
+                                    <a class="btn btn-outline-primary" href="@model.Message.WebLink" target="_blank">Open in Browser</a>
+                                    @{
+                                        var link = "https://onesupport.crm.dynamics.com/main.aspx?appid=101acb62-8d00-eb11-a813-000d3a8b3117&pagetype=search&searchText=" + @model.Message.Subject.Split("TrackingID#").LastOrDefault();
+                                    }
+                                    <a class="btn btn-outline-success" href="@link" target="_blank">Open in DfM</a>
+                                </div>
+                            </div>
                         </div>
+
                     </div>
                 </div>
             }
         }
         else
         {
-            <div class="d-flex justify-content-center">
+            <div class="d-flex justify-content-center py-5">
                 <div class="spinner-border text-light" role="status"></div>
             </div>
         }

@@ -5,8 +5,6 @@
 
 #app {
     display: flex;
-    height: 100vh;
-    width: 100vw;
     flex-direction: column;
     justify-content: space-between;
 }
@@ -191,3 +189,12 @@ p.card-text {
     .loading-progress-text:after {
         content: var(--blazor-load-percentage-text, "Loading");
     }
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.child-card {
+    background-color:#444 !important;
+}
