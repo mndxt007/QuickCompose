@@ -1,0 +1,51 @@
+﻿@using Microsoft.Office.Interop.Outlook;
+@inject OutlookCOM outlookCOM
+
+<div class="text-light">
+@exceptions
+@subject
+</div>
+
+
+@code {
+    string exceptions;
+    string subject;
+    Microsoft.Office.Interop.Outlook.Application outlookApp;
+    MailItem mailItem;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            CurrentSelection();
+            // Microsoft.Office.Interop.Outlook.Application outlookApp = new Microsoft.Office.Interop.Outlook.Application();
+            if (mailItem != null)
+            {
+                // print the subject of the email
+                subject = mailItem.Subject;
+
+            }
+            
+        }
+        catch (System.Exception e)
+        {
+            exceptions = e.ToString();
+        }
+    }
+
+    protected void CurrentSelection()
+    {
+        outlookApp = outlookCOM.outlookApp;
+        NameSpace outlookNamespace = outlookApp.GetNamespace("MAPI");
+        MAPIFolder inboxFolder = outlookNamespace.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
+        Explorer explorer = outlookApp.ActiveExplorer();
+        Selection selection = explorer.Selection;
+        if (selection.Count > 0)
+        {
+            mailItem = selection[1] as MailItem;
+            
+        }
+        
+
+    }
+}
