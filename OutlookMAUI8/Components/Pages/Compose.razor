@@ -1,212 +1,321 @@
-﻿@inject NavigationManager NavigationManager
-@* @using Microsoft.AspNetCore.Authorization;
-@using Microsoft.AspNetCore.Components; *@
-@* @using QuickCompose.Model; *@
-@* @using OutlookAddInMAUI8.Services; *@
-@* @using System.Net.Http.Json;
-@using System.Text.Json; *@
+﻿@inject OfficeService OfficeService;
+@using System.Text.Json;
 
 
-@inject OutlookCOM outlookCOM
-
-
-<div>
+@* <div>
     @exceptions
-    @* @subject *@
+     @subject 
     <OutlookMAUI8.Components.Library.EmailCard PlanModel="compose" />
+</div> *@
+
+<div class="row justify-content-center">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="form-group">
+                    <textarea class="form-control" @bind="CustomInstruction"  placeholder="Custom Instructions..." rows="10"></textarea>
+                </div>
+                <div class="form-group">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" @bind="IncludeFullConversation" id="fullConversationCheckbox">
+                        <label class="form-check-label" for="fullConversationCheckbox">Full Conversation</label>
+                    </div>
+                </div>
+                <div class="form-group text-center">
+                    <button @onclick="async () => await GenerateCustomEmailResponse()" class="btn btn-primary">
+                        @if (_loadingCustomResponse)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <span>Loading...</span>
+                        }
+                        else
+                        {
+                            <span>Generate Response</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<section class="samples ms-font-m">
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            @if (_loadingEmailPlan)
+            {
+                <div class="d-flex justify-content-center py-5">
+                    <div class="spinner-border text-light" role="status"></div>
+                </div>
+            }
+            else
+            {
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h5 class="card-title text-primary">@EmailContext?.Subject</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">@EmailContext?.RecievedTime</h6>
+                    </div>
+                    <div class="card-body my-3">
+                        <div class="row align-items-center">
+                            <DetailCard Title="Action" Value=@Plan?.Action IconClass="fa-tasks" IconColor="springgreen" class="col-md-6" />
+                            <DetailCard Title="Sentiment" Value=@Plan?.Sentiment IconClass="fa-heartbeat" IconColor="red" />
+                            <DetailCard Title="Priority" Value=@Plan?.Priority.ToString() IconClass="fa-exclamation-triangle" IconColor="deepskyblue" />
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card child-card">
+                                    <div class="card-content">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Suggested Response</h5>
+                                            @if (string.IsNullOrEmpty(GeneratedEmailResponse))
+                                            {
+                                                GeneratedEmailResponse = Plan?.Response;
+                                            }
+                                            <pre class="pre-wrap">@GeneratedEmailResponse</pre>
+                                            <div class="row justify-content-between">
+                                                <div class="col-auto">
+                                                    <CopyToClipboard TextToCopy="@GeneratedEmailResponse" />
+                                                </div>
+                                                <div class="col-auto">
+                                                    <button @onclick="@(() => ReplyAll(GeneratedEmailResponse ?? string.Empty))" class="btn btn-primary">Reply All</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12 text-center mt-2">
+                                <a class="btn btn-outline-primary mx-2" href="https://google.com" target="_blank">Open in Browser</a>
+                                @{
+                                    var link = "https://onesupport.crm.dynamics.com/main.aspx?appid=101acb62-8d00-eb11-a813-000d3a8b3117&pagetype=search&searchText=";
+                                }
+                                <a class="btn btn-outline-success mx-2" href="@link" target="_blank">Open in DfM</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+
 
 
 @code {
     string exceptions;
     string subject;
-    Application outlookApp;
-    Selection selection;
-    Explorer explorer;
-    MailItem mailItem;
-    OutlookCOM _outlookCOM;
-    bool callBackregistered;
-    PlanModel compose = new();
+    PlanModel Plan = new();
+    private bool _loadingCustomResponse = false;
+    private bool _loadingEmailPlan = false;
+    private static string? _planPrompt;
+    private static string? _customEmailResponsePrompt;
+    private bool _isProcessing = false;
+
+    // [Inject]
+    // NavigationManager NavigationManager { get; set; }
+
+    // [Inject]
+    // public required OfficeService OfficeService { get; set; }
+
+    [Inject]
+    public required IServiceProvider ServiceProvider { get; set; }
+
+    [Inject]
+    public required IConfiguration Configuration { get; set; }
+
+    //[Inject]
+    //public required IHttpClientFactory ClientFactory { get; set; }
+
+    [Inject]
+    public required OpenAIService OpenAIService { get; set; }
+
+    public bool IncludeFullConversation { get; set; } = true;
+    public string? GeneratedEmailResponse { get; set; }
+    public string? Status { get; set; } = string.Empty;
+    public string? CustomInstruction { get; set; }
+    public EmailContext? EmailContext { get; set; }
 
 
-    protected override async Task OnInitializedAsync()
+    protected override async void OnInitialized()
+    {
+        _planPrompt = Configuration.GetValue<string>("Prompts:Plan")!;
+        _customEmailResponsePrompt = Configuration.GetValue<string>("Prompts:CustomEmailResponse")!;
+        EmailContext = await GetEmailContext();
+
+        try
+        {
+            await base.OnInitializedAsync();
+            await GenerateEmailPlan();
+        }
+        catch (System.Exception ex)
+        {
+            Status = ex.Message;
+            Console.WriteLine($"Error: {ex}");
+        }
+        OfficeService.explorer.SelectionChange += Explorer_SelectionChange;
+
+    }
+
+    private async Task GenerateEmailPlan(bool newContext=false)
     {
         try
         {
-            outlookApp = outlookCOM.outlookApp;
-            explorer = outlookApp.ActiveExplorer();
-            explorer.SelectionChange += Explorer_SelectionChange;
-            await CurrentSelection();
-            // Microsoft.Office.Interop.Outlook.Application outlookApp = new Microsoft.Office.Interop.Outlook.Application();
-           
+            Status = "Reading Email";
+            _loadingEmailPlan = true;
+            StateHasChanged();
 
+            if (EmailContext is null)
+            {
+                return;
+            }
+
+            EmailContext.EmailBody = GetProcessedEmailBody(EmailContext.EmailBody!);
+
+            if (!string.IsNullOrEmpty(EmailContext.EmailBody))
+            {
+                Status = "Generating Plan";
+                StateHasChanged();
+
+                var prompt = ConstructPlanPrompt(EmailContext);
+                if (!string.IsNullOrEmpty(prompt))
+                {
+                    var jsonResponse = await OpenAIService.GetResponse(prompt,newContext);
+                    Console.WriteLine(jsonResponse);
+                    Plan = JsonSerializer.Deserialize<PlanModel>(jsonResponse);
+                }
+                else
+                {
+                    await Console.Out.WriteLineAsync("Prompt is empty or invalid.");
+                }
+            }
         }
-        catch (System.Exception e)
+        catch (System.Exception ex)
         {
-            exceptions = e.ToString();
+            Status = ex.Message;
+            Console.WriteLine($"Error: {ex}");
+            _loadingEmailPlan = false;
         }
+
+        _loadingEmailPlan = false;
+        StateHasChanged();
     }
-
-    private async Task CurrentSelection()
+    private async Task GenerateCustomEmailResponse()
     {
-        selection = explorer.Selection;
-        if (selection.Count > 0)
+        try
         {
-            mailItem = selection[1] as MailItem;
+            _loadingCustomResponse = true;
+            StateHasChanged();
 
+            var userName = EmailContext?.UserName;
+
+            if (!string.IsNullOrEmpty(EmailContext?.EmailBody))
+            {
+                Status = "Generating Custom Response";
+                var prompt = ConstructCustomEmailResponsePrompt(EmailContext);
+                if (!string.IsNullOrEmpty(prompt))
+                {
+                    var openAIService = ServiceProvider.GetRequiredService<OpenAIService>();
+
+                    GeneratedEmailResponse = await openAIService.GetResponse(prompt);
+                    Console.WriteLine(GeneratedEmailResponse);
+                }
+                else
+                {
+                    Console.WriteLine("Prompt is empty or invalid.");
+                }
+            }
         }
-        if (mailItem != null)
+        catch (System.Exception ex)
         {
-            // print the subject of the email
-            subject = mailItem.Subject;
-            compose.Message = mailItem;
-
+            Status = ex.Message;
+            Console.WriteLine($"Error: {ex.Message}");
         }
 
+        _loadingCustomResponse = false;
+    }
+    private string GetProcessedEmailBody(string emailBody)
+    {
+        emailBody = IncludeFullConversation ? emailBody : emailBody.Split("From:")[0];
+        var rawEmail = Configuration.GetValue<bool>("Anonymizer:EnableAnonymizer") ? AnonymizeInput(emailBody!).Result : emailBody;
+        return rawEmail?.Length > 8000 ? rawEmail[..8000] : rawEmail!;
+    }
+    private string ConstructPlanPrompt(EmailContext context)
+    {
+        var Categories = OpenAIService.Categories;
+        if (context != null && !string.IsNullOrEmpty(_planPrompt))
+        {
+            bool isSentItem = string.Equals(context.SenderEmail ?? "", context.UserEmail ?? "", StringComparison.OrdinalIgnoreCase);
+            return string.Format(_planPrompt, context.UserName, isSentItem ? "Myself" : context.SenderEmail, isSentItem ? "Sent Item" : "Inbox", context.EmailBody, Categories.Category1, Categories.Category2, Categories.Category3, Categories.Category4);
+        }
 
+        return string.Empty;
+    }
+    private string ConstructCustomEmailResponsePrompt(EmailContext context)
+    {
+        var Categories = OpenAIService.Categories;
+        if (context != null && !string.IsNullOrEmpty(_customEmailResponsePrompt))
+        {
+            bool isSentItem = string.Equals(context.SenderEmail ?? "", context.UserEmail ?? "", StringComparison.OrdinalIgnoreCase);
+            return string.Format(_customEmailResponsePrompt, context.UserName, isSentItem ? "Myself" : context.SenderEmail, isSentItem ? "Sent Item" : "Inbox", CustomInstruction, IncludeFullConversation ? context.EmailBody : context.EmailBody.Split("From:")[0], Categories.Category1, Categories.Category2, Categories.Category3, Categories.Category4);
+        }
+
+        return string.Empty;
+    }
+    private async Task<EmailContext> GetEmailContext()
+    {
+        var response = OfficeService.GetEmailDataAsync(IncludeFullConversation);
+        return response;
+    }
+    public async Task<string?> AnonymizeInput(string emailBody)
+    {
+        // var client = ClientFactory.CreateClient("Anonymizer");
+        // var response = await client.PostAsJsonAsync("Anonymizer", emailBody);
+
+        // var anonymizerResult = await response.Content.ReadAsStringAsync();
+        return emailBody;
+    }
+    private async Task ReplyAll(string response)
+    {
+        await OfficeService.ReplyAllAsync(response);
     }
 
     private async void Explorer_SelectionChange()
     {
-        await InvokeAsync(() =>
-    {
+        if (_isProcessing) return;
+
+        _isProcessing = true;
+
         try
         {
-            CurrentSelection();
-            // Microsoft.Office.Interop.Outlook.Application outlookApp = new Microsoft.Office.Interop.Outlook.Application();
-            StateHasChanged();
+            EmailContext = await GetEmailContext();
+
+            try
+            {
+                GeneratedEmailResponse = String.Empty;
+                await InvokeAsync(() => GenerateEmailPlan(true));
+            }
+            catch (System.Exception ex)
+            {
+                Status = ex.Message;
+                Console.WriteLine($"Error: {ex.ToString()}");
+            }
+            await InvokeAsync(StateHasChanged);
 
         }
-        catch (System.Exception e)
+        catch (System.Exception ex)
         {
-            exceptions = e.ToString();
+            Status = ex.Message;
+            Console.WriteLine($"Error: {ex.ToString()}");
         }
-        
-    });
+        finally
+        {
+            _isProcessing = false;
+        }
+
+    }
         //NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
     }
 
-
-
-    // private async Task GenerateEmailPlan()
-    // {
-    //     try
-    //     {
-    //         Status = "Reading Email";
-    //         _loadingEmailPlan = true;
-    //         StateHasChanged();
-
-    //         if (EmailContext is null)
-    //         {
-    //             return;
-    //         }
-
-    //         EmailContext.EmailBody = GetProcessedEmailBody(EmailContext.EmailBody!);
-
-    //         if (!string.IsNullOrEmpty(EmailContext.EmailBody))
-    //         {
-    //             Status = "Generating Plan";
-    //             StateHasChanged();
-
-    //             var prompt = ConstructPlanPrompt(EmailContext);
-    //             if (!string.IsNullOrEmpty(prompt))
-    //             {
-    //                 var jsonResponse = await OpenAIService.GetResponse(prompt);
-    //                 Console.WriteLine(jsonResponse);
-    //                 Plan = JsonSerializer.Deserialize<PlanModel>(jsonResponse);
-    //             }
-    //             else
-    //             {
-    //                 await Console.Out.WriteLineAsync("Prompt is empty or invalid.");
-    //             }
-    //         }
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Status = ex.Message;
-    //         Console.WriteLine($"Error: {ex}");
-    //         _loadingEmailPlan = false;
-    //     }
-
-    //     _loadingEmailPlan = false;
-    //     StateHasChanged();
-    // }
-    // private async Task GenerateCustomEmailResponse()
-    // {
-    //     try
-    //     {
-    //         _loadingCustomResponse = true;
-    //         StateHasChanged();
-
-    //         var userName = EmailContext?.UserName;
-
-    //         if (!string.IsNullOrEmpty(EmailContext?.EmailBody))
-    //         {
-    //             Status = "Generating Custom Response";
-
-    //             var prompt = ConstructCustomEmailResponsePrompt(EmailContext);
-    //             if (!string.IsNullOrEmpty(prompt))
-    //             {
-    //                 var openAIService = ServiceProvider.GetRequiredService<OpenAIService>();
-    //                 GeneratedEmailResponse = await openAIService.GetResponse(prompt);
-    //                 Console.WriteLine(GeneratedEmailResponse);
-    //             }
-    //             else
-    //             {
-    //                 Console.WriteLine("Prompt is empty or invalid.");
-    //             }
-    //         }
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Status = ex.Message;
-    //         Console.WriteLine($"Error: {ex.Message}");
-    //     }
-
-    //     _loadingCustomResponse = false;
-    // }
-    // private string GetProcessedEmailBody(string emailBody)
-    // {
-    //     var rawEmail = Configuration.GetValue<bool>("Anonymizer:EnableAnonymizer") ? AnonymizeInput(emailBody!).Result : emailBody;
-    //     return rawEmail?.Length > 8000 ? rawEmail[..8000] : rawEmail!;
-    // }
-    // private string ConstructPlanPrompt(EmailContext context)
-    // {
-    //     var Categories = OpenAIService.Categories;
-    //     if (context != null && !string.IsNullOrEmpty(_planPrompt))
-    //     {
-    //         bool isSentItem = string.Equals(context.SenderEmail ?? "", context.UserEmail ?? "", StringComparison.OrdinalIgnoreCase);
-    //         return string.Format(_planPrompt, context.UserName, isSentItem ? "Myself" : context.SenderEmail, isSentItem ? "Sent Item" : "Inbox", context.EmailBody, Categories.Category1, Categories.Category2, Categories.Category3, Categories.Category4);
-    //     }
-
-    //     return string.Empty;
-    // }
-    // private string ConstructCustomEmailResponsePrompt(EmailContext context)
-    // {
-    //     var Categories = OpenAIService.Categories;
-    //     if (context != null && !string.IsNullOrEmpty(_customEmailResponsePrompt))
-    //     {
-    //         bool isSentItem = string.Equals(context.SenderEmail ?? "", context.UserEmail ?? "", StringComparison.OrdinalIgnoreCase);
-    //         return string.Format(_customEmailResponsePrompt, context.UserName, isSentItem ? "Myself" : context.SenderEmail, isSentItem ? "Sent Item" : "Inbox", CustomInstruction, context.EmailBody, Categories.Category1, Categories.Category2, Categories.Category3, Categories.Category4);
-    //     }
-
-    //     return string.Empty;
-    // }
-    // private async Task<EmailContext> GetEmailContext(bool includeFullConversation = false)
-    // {
-    //     var response = await OfficeService.GetEmailDataAsync(includeFullConversation);
-    //     return JsonSerializer.Deserialize<EmailContext>(response)!;
-    // }
-    // public async Task<string?> AnonymizeInput(string emailBody)
-    // {
-    //     var client = ClientFactory.CreateClient("Anonymizer");
-    //     var response = await client.PostAsJsonAsync("Anonymizer", emailBody);
-
-    //     var anonymizerResult = await response.Content.ReadAsStringAsync();
-    //     return anonymizerResult;
-    // }
-    // private async Task ReplyAll(string response)
-    // {
-    //     await OfficeService.ReplyAllAsync(response);
-    // }
-}

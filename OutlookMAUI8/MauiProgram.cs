@@ -1,5 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Blazored.LocalStorage;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using OutlookMAUI8.Services;
+using System.Reflection;
 
 namespace OutlookMAUI8
 {
@@ -21,9 +24,15 @@ namespace OutlookMAUI8
                 config.SetMinimumLevel(LogLevel.Trace);
                 config.AddDebug();
             });
+            var config = "OutlookMAUI8.appsettings.json";
+            var assembly = Assembly.GetExecutingAssembly();
+            using var stream = assembly.GetManifestResourceStream(config);
+            builder.Configuration.AddJsonStream(stream);
             builder.Services.AddMauiBlazorWebView();
-            builder.Services.AddSingleton<OutlookCOM>();
+            builder.Services.AddSingleton<OfficeService>();
             builder.Services.AddScoped<ClipboardService>();
+            builder.Services.AddTransient<OpenAIService>();
+            builder.Services.AddBlazoredLocalStorage();
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
