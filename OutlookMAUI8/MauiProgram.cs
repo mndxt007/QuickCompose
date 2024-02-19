@@ -13,17 +13,22 @@ namespace OutlookMAUI8
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                });
-
+                })
+                ;
+            builder.Services.AddLogging(config =>
+            {
+                config.AddFilter("Microsoft.AspNetCore.Components.WebView", LogLevel.Trace);
+                config.SetMinimumLevel(LogLevel.Trace);
+                config.AddDebug();
+            });
             builder.Services.AddMauiBlazorWebView();
+            builder.Services.AddSingleton<OutlookCOM>();
 
 #if DEBUG
-    		builder.Services.AddBlazorWebViewDeveloperTools();
-            builder.Services.AddSingleton<OutlookCOM>();
+            builder.Services.AddBlazorWebViewDeveloperTools();
             builder.Logging.AddDebug();
 
 #endif
-
             return builder.Build();
         }
     }

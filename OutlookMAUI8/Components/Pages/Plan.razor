@@ -3,28 +3,32 @@
 
 @exceptions
 <div class="container text-light">
-    @foreach (var item in items)
+    @if(items !=null)
     {
+        @foreach (var item in items)
+        {
 
-        <div class="row">
-            @item.Subject
-        </div>
+            <div class="row">
+                @item.Subject
+            </div>
+        }
     }
+    
 </div>
 
 
 @code {
     string exceptions;
     IEnumerable<MailItem> items;
-    Microsoft.Office.Interop.Outlook.Application outlookApp;
+    //Microsoft.Office.Interop.Outlook.Application outlookApp;
 
     protected override void OnInitialized()
     {
         try
         {
             // Microsoft.Office.Interop.Outlook.Application outlookApp = new Microsoft.Office.Interop.Outlook.Application();
-            outlookApp = outlookCOM.outlookApp;
-            NameSpace outlookNamespace = outlookApp.GetNamespace("MAPI");
+            //outlookApp = outlookCOM.outlookApp;
+            NameSpace outlookNamespace = outlookCOM.outlookApp.GetNamespace("MAPI");
             MAPIFolder inboxFolder = outlookNamespace.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
             // Refer - https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.outlook._items.restrict?view=outlook-pia#microsoft-office-interop-outlook-items-restrict(system-string)
             var filter = $"[ReceivedTime] >= '{DateTime.Today.AddDays(-10).ToString("dd/MM/yyyy")}'";
