@@ -1,0 +1,14 @@
+﻿<div class="card child-card">
+    <div class="card-content">
+        <div class="card-header">
+            Message
+        </div>
+        <div class="card-body">
+            <pre class="card-text p-3 border"> @(new MarkupString(Text.Length <= 400 ? Text : Text.Substring(0, 400)))</pre>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Text { get; set; }
+}

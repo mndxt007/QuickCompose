@@ -1,0 +1,49 @@
+﻿@* @inject IConfiguration Configuration *@
+@using System.Text.Json
+@using OutlookMAUI8.Model
+
+
+    <div class="col">
+        <div class="card">
+            <div class="card-header text-center">
+                <h5 class="card-title text-primary">@PlanModel?.Message?.Subject</h5>
+                <h6 class="card-subtitle mb-2 text-muted">@PlanModel?.Message?.ReceivedTime</h6>
+            </div>
+            <div class="card-body my-3">
+                <PreviewCard Text=@PlanModel?.Message?.Body/>
+                <div class="row align-items-center">
+                <DetailCard Title="Action" Value=@PlanModel?.Action IconClass="fa-tasks" IconColor="springgreen" /> @*class="col-md-6" *@
+                    <DetailCard Title="Sentiment" Value=@PlanModel?.Sentiment IconClass="fa-heartbeat" IconColor="red" />
+                    <DetailCard Title="Priority" Value=@PlanModel?.Priority.ToString() IconClass="fa-exclamation-triangle" IconColor="deepskyblue" />
+                </div>
+                <div class="col-12">
+                    <div class="card child-card">
+                        <div class="card-content">
+                            <div class="card-body">
+                                <h5 class="card-title">Suggested Response</h5>
+                                <pre>@PlanModel?.Response</pre>
+                                <CopyToClipboard TextToCopy="@PlanModel?.Response" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="d-grid gap-2 col-6 mx-auto pt-2">
+                      @*   <a class="btn btn-outline-primary" href="@PlanModel?.Message?.WebLink" target="_blank">Open in Browser</a> *@
+                        <a class="btn btn-outline-success" href="@GenerateLink()" target="_blank">Open in DfM</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public PlanModel? PlanModel { get; set; }
+
+    private string GenerateLink()
+    {
+        return new String("https://google.com/" + PlanModel?.Message?.Subject?.Split("TrackingID#").LastOrDefault());
+    }
+}

@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using OutlookAddInMAUI8.Services;
+using OutlookMAUI8.Services;
 
 namespace OutlookMAUI8
 {
@@ -23,6 +23,7 @@ namespace OutlookMAUI8
             });
             builder.Services.AddMauiBlazorWebView();
             builder.Services.AddSingleton<OutlookCOM>();
+            builder.Services.AddScoped<ClipboardService>();
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();

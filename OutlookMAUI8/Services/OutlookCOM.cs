@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OutlookAddInMAUI8.Services
+namespace OutlookMAUI8.Services
 {
     internal class OutlookCOM
     {

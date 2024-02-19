@@ -1,6 +1,4 @@
-﻿@using Microsoft.Office.Interop.Outlook;
-@using OutlookAddInMAUI8.Services
-@inject NavigationManager NavigationManager
+﻿@inject NavigationManager NavigationManager
 @* @using Microsoft.AspNetCore.Authorization;
 @using Microsoft.AspNetCore.Components; *@
 @* @using QuickCompose.Model; *@
@@ -12,9 +10,10 @@
 @inject OutlookCOM outlookCOM
 
 
-<div class="text-light">
+<div>
     @exceptions
-    @subject
+    @* @subject *@
+    <OutlookMAUI8.Components.Library.EmailCard PlanModel="compose" />
 </div>
 
 
@@ -22,13 +21,12 @@
     string exceptions;
     string subject;
     Application outlookApp;
-    NameSpace outlookNamespace;
-    MAPIFolder inboxFolder;
     Selection selection;
     Explorer explorer;
     MailItem mailItem;
     OutlookCOM _outlookCOM;
     bool callBackregistered;
+    PlanModel compose = new();
 
 
     protected override async Task OnInitializedAsync()
@@ -40,12 +38,7 @@
             explorer.SelectionChange += Explorer_SelectionChange;
             await CurrentSelection();
             // Microsoft.Office.Interop.Outlook.Application outlookApp = new Microsoft.Office.Interop.Outlook.Application();
-            if (mailItem != null)
-            {
-                // print the subject of the email
-                subject = mailItem.Subject;
-
-            }
+           
 
         }
         catch (System.Exception e)
@@ -62,6 +55,13 @@
             mailItem = selection[1] as MailItem;
 
         }
+        if (mailItem != null)
+        {
+            // print the subject of the email
+            subject = mailItem.Subject;
+            compose.Message = mailItem;
+
+        }
 
 
     }
@@ -74,11 +74,6 @@
         {
             CurrentSelection();
             // Microsoft.Office.Interop.Outlook.Application outlookApp = new Microsoft.Office.Interop.Outlook.Application();
-            if (mailItem != null)
-            {
-                // print the subject of the email
-                subject = mailItem.Subject;
-            }
             StateHasChanged();
 
         }
