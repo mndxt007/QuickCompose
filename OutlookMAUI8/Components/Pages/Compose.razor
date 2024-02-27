@@ -42,19 +42,21 @@
 <section class="samples ms-font-m">
     <div class="row justify-content-center">
         <div class="col-md-12">
-            @if (_loadingEmailPlan)
-            {
-                <div class="d-flex justify-content-center py-5">
-                    <div class="spinner-border text-light" role="status"></div>
-                </div>
-            }
-            else
-            {
+           
                 <div class="card">
                     <div class="card-header text-center">
+                       
                         <h5 class="card-title text-primary">@EmailContext?.Subject</h5>
                         <h6 class="card-subtitle mb-2 text-muted">@EmailContext?.RecievedTime</h6>
                     </div>
+                @if (_loadingEmailPlan)
+                {
+                    <div class="d-flex justify-content-center py-5">
+                        <div class="spinner-border text-light" role="status"></div>
+                    </div>
+                }
+                else
+                {
                     <div class="card-body my-3">
                         <div class="row align-items-center">
                             <DetailCard Title="Action" Value=@Plan?.Action IconClass="fa-tasks" IconColor="springgreen" class="col-md-6" />
@@ -95,8 +97,8 @@
                             </div>
                         </div>
                     </div>
+                    }
                 </div>
-            }
         </div>
     </div>
 </section>
@@ -247,7 +249,7 @@
         var Categories = OpenAIService.Categories;
         if (context != null && !string.IsNullOrEmpty(_planPrompt))
         {
-            bool isSentItem = string.Equals(context.SenderEmail ?? "", context.UserEmail ?? "", StringComparison.OrdinalIgnoreCase);
+            bool isSentItem = string.Equals(context.SenderEmail ?? "", context.UserName ?? "", StringComparison.OrdinalIgnoreCase);
             return string.Format(_planPrompt, context.UserName, isSentItem ? "Myself" : context.SenderEmail, isSentItem ? "Sent Item" : "Inbox", context.EmailBody, Categories.Category1, Categories.Category2, Categories.Category3, Categories.Category4);
         }
 
@@ -258,7 +260,7 @@
         var Categories = OpenAIService.Categories;
         if (context != null && !string.IsNullOrEmpty(_customEmailResponsePrompt))
         {
-            bool isSentItem = string.Equals(context.SenderEmail ?? "", context.UserEmail ?? "", StringComparison.OrdinalIgnoreCase);
+            bool isSentItem = string.Equals(context.SenderEmail ?? "", context.UserName ?? "", StringComparison.OrdinalIgnoreCase);
             return string.Format(_customEmailResponsePrompt, context.UserName, isSentItem ? "Myself" : context.SenderEmail, isSentItem ? "Sent Item" : "Inbox", CustomInstruction, IncludeFullConversation ? context.EmailBody : context.EmailBody.Split("From:")[0], Categories.Category1, Categories.Category2, Categories.Category3, Categories.Category4);
         }
 
@@ -269,6 +271,13 @@
         var response = OfficeService.GetEmailDataAsync(IncludeFullConversation);
         return response;
     }
+
+    private void RefreshEmailContext()
+    {
+        EmailContext = OfficeService.GetEmailDataAsync(IncludeFullConversation);
+        StateHasChanged();
+    }
+
     public async Task<string?> AnonymizeInput(string emailBody)
     {
         // var client = ClientFactory.CreateClient("Anonymizer");

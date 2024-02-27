@@ -1,8 +1,150 @@
-﻿<div>
-    <h3>Config</h3>
+﻿@using Blazored.LocalStorage;
+@using Microsoft.AspNetCore.Components;
+
+<div class="container mt-5 dark-mode">
+    <div class="text-center">
+        <h2>Welcome to Quick Compose</h2>
+        <p>You can provide your own instance of OpenAI</p>
+    </div>
+    <EditForm Model="@ConfigData" OnValidSubmit="@HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <div class="mb-2">
+            <label for="endpoint" class="col-sm-2 col-form-label">Endpoint</label>
+            <InputText @bind-Value="ConfigData.Endpoint" id="endpoint" class="form-control bg-dark text-light" placeholder="Endpoint URL"></InputText>
+            <ValidationMessage For="@(() => ConfigData.Endpoint)" />
+        </div>
+
+        <div class="mb-2">
+            <label for="key" class="col-sm-2 col-form-label">Key</label>
+            <InputText @bind-Value="ConfigData.Key" id="key" class="form-control bg-dark text-light" placeholder="Key"></InputText>
+            <ValidationMessage For="@(() => ConfigData.Key)" />
+        </div>
+
+        <div class="mb-3">
+            <label for="deployment" class="col-sm-2 col-form-label">Deployment</label>
+            <InputText @bind-Value="ConfigData.Deployment" id="deployment" class="form-control bg-dark text-light" placeholder="Deployment Name"></InputText>
+            <ValidationMessage For="@(() => ConfigData.Deployment)" />
+        </div>
+        <div class="row justify-content-between">
+            <div class="d-grid gap-2 col-6 mx-auto">
+                <button type="submit" class="btn btn-primary btn-block">Use Custom</button>
+            </div>
+            <div class="d-grid gap-2 col-6 mx-auto">
+                <button type="button" @onclick="Skip" class="btn btn-secondary btn-block">Use Default</button>
+            </div>
+        </div>
+        @if (!String.IsNullOrEmpty(Message))
+        {
+            <div class="alert alert-success text-center mt-4" role="alert">
+                @Message
+            </div>
+        }
+    </EditForm>
+</div>
+
+<div class="container mt-5 dark-mode">
+    <div class="text-center">
+        <h3>Customize Action Categories</h3>
+    </div>
+    <EditForm Model="@Categories" OnValidSubmit="@HandleValidSubmit2">
+        <DataAnnotationsValidator />
+        <div class="mb-2">
+            <label for="category4" class="col-sm-2 col-form-label">Category1</label>
+            <InputText @bind-Value="Categories.Category1" id="category1" class="form-control bg-dark text-light" placeholder="Category1"></InputText>
+            <ValidationMessage For="@(() => Categories.Category1)" />
+        </div>
+        <div class="mb-2">
+            <label for="category4" class="col-sm-2 col-form-label">Category2</label>
+            <InputText @bind-Value="Categories.Category2" id="category2" class="form-control bg-dark text-light" placeholder="Category2"></InputText>
+            <ValidationMessage For="@(() => Categories.Category2)" />
+        </div>
+        <div class="mb-2">
+            <label for="category3" class="col-sm-2 col-form-label">Category3</label>
+            <InputText @bind-Value="Categories.Category3" id="category3" class="form-control bg-dark text-light" placeholder="Category3"></InputText>
+            <ValidationMessage For="@(() => Categories.Category3)" />
+        </div>
+        <div class="mb-2">
+            <label for="category4" class="col-sm-2 col-form-label">Category4</label>
+            <InputText @bind-Value="Categories.Category4" id="category4" class="form-control bg-dark text-light" placeholder="Category4"></InputText>
+            <ValidationMessage For="@(() => Categories.Category4)" />
+        </div>
+
+        <div class="d-grid mt-4">
+            <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+        @if (!String.IsNullOrEmpty(Message2))
+        {
+            <div class="alert alert-success text-center mt-4" role="alert">
+                @Message2
+            </div>
+        }
+    </EditForm>
 </div>
 
 
 @code {
 
+    [Inject]
+    protected ILocalStorageService LocalStorage { get; set; } = default!;
+
+    [Inject]
+    protected NavigationManager NavigationManager { get; set; } = default!;
+
+    protected OpenAIConfig ConfigData { get; set; } = new OpenAIConfig();
+
+    protected OutlookMAUI8.Model.Actions Categories { get; set; } = new OutlookMAUI8.Model.Actions();
+
+    protected String Message { get; set; } = default!;
+    protected String Message2 { get; set; } = default!;
+
+    protected async Task HandleValidSubmit()
+    {
+        await LocalStorage.SetItemAsync("OpenAI.Endpoint", ConfigData.Endpoint);
+        await LocalStorage.SetItemAsync("OpenAI.Key", ConfigData.Key);
+        await LocalStorage.SetItemAsync("OpenAI.Deployment", ConfigData.Deployment);
+        await LocalStorage.SetItemAsync("OpenAI.UseDefault", "False");
+        Message = "Using custom OpenAI endpoint";
+        StateHasChanged();
+        //NavigationManager.NavigateTo("/home");
+    }
+    protected async Task HandleValidSubmit2()
+    {
+        await LocalStorage.SetItemAsync("Actions.Category1", Categories.Category1);
+        await LocalStorage.SetItemAsync("Actions.Category2", Categories.Category2);
+        await LocalStorage.SetItemAsync("Actions.Category3", Categories.Category3);
+        await LocalStorage.SetItemAsync("Actions.Category4", Categories.Category4);
+        Message2 = "Categories saved!";
+        StateHasChanged();
+
+    }
+
+    private async Task Skip()
+    {
+        await LocalStorage.SetItemAsync("OpenAI.UseDefault", "True");
+        Message = "Using default OpenAI endpoint";
+        StateHasChanged();
+        //NavigationManager.NavigateTo("/home");
+
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ConfigData.Endpoint = await LocalStorage.GetItemAsync<string>("OpenAI.Endpoint");
+        ConfigData.Key = await LocalStorage.GetItemAsync<string>("OpenAI.Key");
+        ConfigData.Deployment = await LocalStorage.GetItemAsync<string>("OpenAI.Deployment");
+        ConfigData.UseDefault = await LocalStorage.GetItemAsync<string>("OpenAI.UseDefault");
+        Categories.Category1 = await LocalStorage.GetItemAsync<string>("Actions.Category1") ?? Categories.Category1;
+        Categories.Category2 = await LocalStorage.GetItemAsync<string>("Actions.Category2") ?? Categories.Category2;
+        Categories.Category3 = await LocalStorage.GetItemAsync<string>("Actions.Category3") ?? Categories.Category3;
+        Categories.Category4 = await LocalStorage.GetItemAsync<string>("Actions.Category4") ?? Categories.Category4;
+
+        //if (ConfigData.UseDefault=="True" &&
+        //    !string.IsNullOrEmpty(ConfigData.Endpoint) &&
+        //    !string.IsNullOrEmpty(ConfigData.Key) &&
+        //    !string.IsNullOrEmpty(ConfigData.Deployment))
+        //{
+        //    NavigationManager.NavigateTo("/home");
+        //}
+    }
 }
+

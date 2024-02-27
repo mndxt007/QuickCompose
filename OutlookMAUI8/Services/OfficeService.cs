@@ -41,13 +41,13 @@ namespace OutlookMAUI8.Services
                 if (mailItem != null)
                 {
                     // print the subject of the email
-
+                    
                     emailContext.EmailBody = mailItem.Body;
                     emailContext.RecievedTime = mailItem.ReceivedTime;
                     emailContext.Subject = mailItem.Subject;
-                    emailContext.UserName = outlookApp.Session.CurrentUser.Name;
+                    emailContext.UserName = mailItem.UserProperties.Session.CurrentUser.Name;
                     emailContext.SenderEmail = mailItem.SenderName;
-                    AddressEntry currentUserAddressEntry = outlookApp.Session.CurrentUser.AddressEntry;
+                    AddressEntry currentUserAddressEntry = mailItem.UserProperties.Session.CurrentUser.AddressEntry;
 
                     if (currentUserAddressEntry.Type == "EX")
                     {
@@ -63,6 +63,7 @@ namespace OutlookMAUI8.Services
                         // This is not an Exchange user. Just use the address.
                         emailContext.UserEmail = currentUserAddressEntry.Address;
                     }
+
 
                     return emailContext;
 

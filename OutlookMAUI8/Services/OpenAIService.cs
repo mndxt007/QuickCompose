@@ -33,7 +33,7 @@ namespace OutlookMAUI8.Services
         {
             return new ChatCompletionsOptions
             {
-                MaxTokens = 800,
+                MaxTokens = 1400,
                 Temperature = 0.6f,
                 FrequencyPenalty = 0.0f,
                 PresencePenalty = 0.0f,
