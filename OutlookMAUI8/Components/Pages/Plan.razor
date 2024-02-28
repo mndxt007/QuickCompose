@@ -1,10 +1,12 @@
 ﻿@using Microsoft.Office.Interop.Outlook;
+@using Blazored.LocalStorage;
 @using OutlookMAUI8.Components.Library
 @inject OfficeService outlookCOM
 @using System.Text.Json;
 @using System.Text.Json.Serialization;
 @inject OpenAIService OpenAIService
 @inject PlanService PlanService
+@inject ILocalStorageService _localStorage
 
 
 <div class="accordion" id="Cards">
@@ -75,7 +77,8 @@
             //outlookApp = outlookCOM.outlookApp;
             NameSpace outlookNamespace = outlookCOM.outlookApp.GetNamespace("MAPI");
             MAPIFolder inboxFolder = outlookNamespace.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
-            MAPIFolder iisDiscussionsFolder = inboxFolder.Folders["IIS Discussions"]; // Navigate to the "IIS Discussions" folder
+            string folder = await _localStorage.GetItemAsync<string>("Actions.Folder") ?? "IIS Discussions";
+            MAPIFolder iisDiscussionsFolder = inboxFolder.Folders[folder]; // Navigate to the "IIS Discussions" folder
 
             // Refer - https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.outlook._items.restrict?view=outlook-pia#microsoft-office-interop-outlook-items-restrict(system-string)
             var filter = $"[ReceivedTime] >= '{DateTime.Today.AddDays(-days).ToString("dd/MM/yyyy")}'";

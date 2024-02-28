@@ -17,6 +17,7 @@ namespace OutlookMAUI8.Model
         public string? Category3 { get; set; }
         [RegularExpression("^\\S+$", ErrorMessage = "Specify in action in single word (without spaces, use _-)")]
         public string? Category4 { get; set; }
+        public string? Folder { get; set; }
 
 
         public Actions()
@@ -25,6 +26,7 @@ namespace OutlookMAUI8.Model
             Category2 = "Attention-Needed";
             Category3 = "Acknowledgement";
             Category4 = "Case-Closure";
+            Folder = "IIS Discussions";
         }
     }
 }

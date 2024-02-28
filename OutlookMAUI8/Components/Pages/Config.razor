@@ -1,5 +1,6 @@
 ﻿@using Blazored.LocalStorage;
 @using Microsoft.AspNetCore.Components;
+@inject OfficeService OfficeService;
 
 <div class="container mt-5 dark-mode">
     <div class="text-center">
@@ -48,6 +49,22 @@
     </div>
     <EditForm Model="@Categories" OnValidSubmit="@HandleValidSubmit2">
         <DataAnnotationsValidator />
+        @* <div class="mb-2">
+            <label for="category4" class="col-sm-2 col-form-label">Outlook Folder</label>
+            <InputText @bind-Value="Categories.Folder" id="category4" class="form-control bg-dark text-light" placeholder="IIS Discussions"></InputText>
+            <ValidationMessage For="@(() => Categories.Folder)" />
+        </div> *@
+        <div class="mb-2">
+            <label for="folder" class="col-sm-2 col-form-label">Outlook Folder</label>
+            <InputSelect @bind-Value="Categories.Folder" id="folder" class="form-control bg-dark text-light">
+                @foreach (var folderName in folderNames)
+                {
+                    <option value="@folderName">@folderName</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => Categories.Folder)" />
+        </div>
+
         <div class="mb-2">
             <label for="category4" class="col-sm-2 col-form-label">Category1</label>
             <InputText @bind-Value="Categories.Category1" id="category1" class="form-control bg-dark text-light" placeholder="Category1"></InputText>
@@ -96,6 +113,7 @@
 
     protected String Message { get; set; } = default!;
     protected String Message2 { get; set; } = default!;
+    List<string> folderNames = new List<string>();
 
     protected async Task HandleValidSubmit()
     {
@@ -105,7 +123,7 @@
         await LocalStorage.SetItemAsync("OpenAI.UseDefault", "False");
         Message = "Using custom OpenAI endpoint";
         StateHasChanged();
-        //NavigationManager.NavigateTo("/home");
+        NavigationManager.NavigateTo("/", forceLoad: true);
     }
     protected async Task HandleValidSubmit2()
     {
@@ -113,9 +131,11 @@
         await LocalStorage.SetItemAsync("Actions.Category2", Categories.Category2);
         await LocalStorage.SetItemAsync("Actions.Category3", Categories.Category3);
         await LocalStorage.SetItemAsync("Actions.Category4", Categories.Category4);
+        await LocalStorage.SetItemAsync("Actions.Folder", Categories.Folder);
         Message2 = "Categories saved!";
         StateHasChanged();
-
+        await Task.Delay(3000);
+        NavigationManager.NavigateTo("/", forceLoad: true);
     }
 
     private async Task Skip()
@@ -137,7 +157,13 @@
         Categories.Category2 = await LocalStorage.GetItemAsync<string>("Actions.Category2") ?? Categories.Category2;
         Categories.Category3 = await LocalStorage.GetItemAsync<string>("Actions.Category3") ?? Categories.Category3;
         Categories.Category4 = await LocalStorage.GetItemAsync<string>("Actions.Category4") ?? Categories.Category4;
-
+        Categories.Folder = await LocalStorage.GetItemAsync<string>("Actions.Folder") ?? Categories.Folder;
+        NameSpace outlookNamespace = OfficeService.outlookApp.GetNamespace("MAPI");
+        MAPIFolder inboxFolder = outlookNamespace.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
+        foreach (MAPIFolder folder in inboxFolder.Folders)
+        {
+            folderNames.Add(folder.Name);
+        }
         //if (ConfigData.UseDefault=="True" &&
         //    !string.IsNullOrEmpty(ConfigData.Endpoint) &&
         //    !string.IsNullOrEmpty(ConfigData.Key) &&
@@ -145,6 +171,9 @@
         //{
         //    NavigationManager.NavigateTo("/home");
         //}
+
     }
+
+
 }
 
