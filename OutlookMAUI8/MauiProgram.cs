@@ -1,5 +1,6 @@
 ﻿using Blazored.LocalStorage;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OutlookMAUI8.Services;
 using System.Reflection;
@@ -32,7 +33,13 @@ namespace OutlookMAUI8
             builder.Services.AddSingleton<OfficeService>();
             builder.Services.AddScoped<ClipboardService>();
             builder.Services.AddTransient<OpenAIService>();
+            builder.Services.AddTransient<PlanService>();
             builder.Services.AddBlazoredLocalStorage();
+
+            //builder.Services.AddHttpClient("Anonymizer", httpClient =>
+            //{
+            //    httpClient.BaseAddress = new Uri(Configuration.GetValue<string>("AnonymizerEndpoint")!);
+            //});
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();

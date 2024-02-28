@@ -1,0 +1,11 @@
+﻿<div class="accordion-item">
+    <h2 class="accordion-header" id="@String.Concat("H",Action)">
+        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="@String.Concat("#",Action)" aria-expanded="false" aria-controls="@Action">
+            @Action
+        </button>
+    </h2>
+</div>
+
+@code {
+    [Parameter] public string? Action { get; set; }
+}

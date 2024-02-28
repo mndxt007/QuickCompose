@@ -1,7 +1,40 @@
 ﻿@using Microsoft.Office.Interop.Outlook;
+@using OutlookMAUI8.Components.Library
 @inject OfficeService outlookCOM
+@using System.Text.Json;
+@using System.Text.Json.Serialization;
+@inject OpenAIService OpenAIService
+@inject PlanService PlanService
 
-@exceptions
+
+<div class="accordion" id="Cards">
+            <Accordion Action="@OpenAIService.Categories.Category1"></Accordion>
+            <Accordion Action="@OpenAIService.Categories.Category2"></Accordion>
+            <Accordion Action="@OpenAIService.Categories.Category3"></Accordion>
+            <Accordion Action="@OpenAIService.Categories.Category4"></Accordion>
+            @if (planViewModels.Any())
+            {
+                @foreach (var model in planViewModels)
+                {
+                    @if (!string.IsNullOrEmpty(model?.Response) && !string.IsNullOrEmpty(model?.Message?.EmailBody))
+                    {
+                        <div id="@model.Action" class="accordion-collapse collapse show" aria-labelledby="@String.Concat("H",model.Action)" data-bs-parent="#Cards">
+                            <div class="accordion-body">
+                                <PlanCard PlanModel="model" />
+                            </div>
+                        </div>
+                    }
+                }
+            }
+            @if (inProgress)
+            {
+                <div class="d-flex justify-content-center py-5">
+                    <div class="spinner-border text-light" role="status"></div>
+                </div>
+            }
+        </div>
+
+@* @exceptions
 <div class="container">
     @if(items !=null)
     {
@@ -14,15 +47,27 @@
         }
     }
     
-</div>
+</div> *@
 
 
 @code {
-    string exceptions;
-    IEnumerable<MailItem> items;
+    string? exceptions;
+    IEnumerable<MailItem>? items;
     //Microsoft.Office.Interop.Outlook.Application outlookApp;
 
-    protected override void OnInitialized()
+    private bool inProgress = true;
+    private List<PlanModel> planViewModels = new();
+    Items? mailItems;
+    private EmailContext? context;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchEmailsAsync();
+        await FetchPlansAsync();
+        inProgress = false;
+    }
+
+    public async Task FetchEmailsAsync(int days = 10, int maxemails = 10)
     {
         try
         {
@@ -30,23 +75,47 @@
             //outlookApp = outlookCOM.outlookApp;
             NameSpace outlookNamespace = outlookCOM.outlookApp.GetNamespace("MAPI");
             MAPIFolder inboxFolder = outlookNamespace.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
+            MAPIFolder iisDiscussionsFolder = inboxFolder.Folders["IIS Discussions"]; // Navigate to the "IIS Discussions" folder
+
             // Refer - https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.outlook._items.restrict?view=outlook-pia#microsoft-office-interop-outlook-items-restrict(system-string)
-            var filter = $"[ReceivedTime] >= '{DateTime.Today.AddDays(-10).ToString("dd/MM/yyyy")}'";
+            var filter = $"[ReceivedTime] >= '{DateTime.Today.AddDays(-days).ToString("dd/MM/yyyy")}'";
             //took a lot of time so its better do it in COM
             // items = inboxFolder.Items.Restrict(filter)
             //         .OfType<MailItem>()
             //         .OrderByDescending(mailItem => mailItem.ReceivedTime)
             //         .Take(10);
-            Items mailItems = inboxFolder.Items;
+            //mailItems = inboxFolder.Items;
+            mailItems = iisDiscussionsFolder.Items;
             // Refer - https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.outlook._items.sort?view=outlook-pia
             mailItems.Sort("[ReceivedTime]", true); // Sort by ReceivedTime in descending order
-            items = mailItems.Restrict(filter).OfType<MailItem>().Take(10);
+            var allItems = mailItems.Restrict(filter).OfType<MailItem>().Take(maxemails);
+           
+            items = allItems.DistinctBy(mailItem => mailItem.ConversationID);
+            //only first email from unique subject
         }
         catch (System.Exception e)
         {
             exceptions = e.ToString();
         }
     }
+
+    private async Task FetchPlansAsync()
+    {
+        if (items is null || !items.Any())
+        {
+            return;
+        }
+
+        foreach (var item in items!)
+        {
+            var emailContext = outlookCOM.GetEmailDataAsync(item,true);
+            var planViewModel = await PlanService.GeneratePlan(emailContext);
+            planViewModels.Add(planViewModel);
+            StateHasChanged();
+        }
+
+    }
+
 
 
 }

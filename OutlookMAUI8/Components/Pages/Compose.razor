@@ -79,7 +79,7 @@
                                                     <CopyToClipboard TextToCopy="@GeneratedEmailResponse" />
                                                 </div>
                                                 <div class="col-auto">
-                                                    <button @onclick="@(() => ReplyAll(GeneratedEmailResponse ?? string.Empty))" class="btn btn-primary">Reply All</button>
+                                                    <button @onclick="@(() => ReplyAll(EmailContext?.EntryID, GeneratedEmailResponse ?? string.Empty))" class="btn btn-primary">Reply All</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -286,9 +286,9 @@
         // var anonymizerResult = await response.Content.ReadAsStringAsync();
         return emailBody;
     }
-    private async Task ReplyAll(string response)
+    private async Task ReplyAll(string? entryID, string response)
     {
-        await OfficeService.ReplyAllAsync(response);
+        await OfficeService.ReplyAllAsync(entryID,response);
     }
 
     private async void Explorer_SelectionChange()

@@ -9,7 +9,7 @@ namespace OutlookMAUI8.Model
 {
 	public class PlanModel
 	{
-		public MailItem Message { get; set; } = default!;
+		public EmailContext Message { get; set; } = default!;
 		public string Action { get; set; } = "Demo_Action";
 		public string Response { get; set; } = "Take Action on the email";
 		public string Sentiment { get; set; } = "Default Sentiment";

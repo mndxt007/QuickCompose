@@ -7,10 +7,10 @@
         <div class="card">
             <div class="card-header text-center">
                 <h5 class="card-title text-primary">@PlanModel?.Message?.Subject</h5>
-                <h6 class="card-subtitle mb-2 text-muted">@PlanModel?.Message?.ReceivedTime</h6>
+            <h6 class="card-subtitle mb-2 text-muted">@PlanModel?.Message?.RecievedTime</h6>
             </div>
             <div class="card-body my-3">
-                <PreviewCard Text=@PlanModel?.Message?.Body/>
+                <PreviewCard Text=@PlanModel?.Message?.EmailBody/>
                 <div class="row align-items-center">
                 <DetailCard Title="Action" Value=@PlanModel?.Action IconClass="fa-tasks" IconColor="springgreen" /> @*class="col-md-6" *@
                     <DetailCard Title="Sentiment" Value=@PlanModel?.Sentiment IconClass="fa-heartbeat" IconColor="red" />

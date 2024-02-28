@@ -8,6 +8,7 @@ namespace OutlookMAUI8.Model
 {
     public class EmailContext
     {
+        public string? EntryID { get; set; }
         public string? EmailBody { get; set; }
         public string? UserName { get; set; }
         public string? UserEmail { get; set; }
