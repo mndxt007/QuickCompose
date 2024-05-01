@@ -14,6 +14,7 @@ namespace OutlookMAUI8.Services
 {
     public class PlanService
     {
+        int emailbodylen = 4000;
         private readonly IConfiguration _configuration;
         public required IServiceProvider _serviceProvider;
         [Inject]
@@ -68,7 +69,7 @@ namespace OutlookMAUI8.Services
             if (message != null && !string.IsNullOrEmpty(planPrompt))
             {
                 bool isSentItem = string.Equals(message.SenderEmail ?? "", message.UserEmail ?? "", StringComparison.OrdinalIgnoreCase);
-                return string.Format(planPrompt, message.UserName, isSentItem ? "Myself" : message?.UserEmail, isSentItem ? "Sent Item" : "Inbox", message?.EmailBody, Categories.Category1, Categories.Category2, Categories.Category3, Categories.Category4);
+                return string.Format(planPrompt, message.UserName, isSentItem ? "Myself" : message?.UserEmail, isSentItem ? "Sent Item" : "Inbox", message?.EmailBody?.Length > emailbodylen ? message?.EmailBody[..emailbodylen] : message?.EmailBody , Categories.Category1, Categories.Category2, Categories.Category3, Categories.Category4);
             }
 
             return string.Empty;

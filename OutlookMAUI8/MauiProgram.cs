@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OutlookMAUI8.Services;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 using System.Reflection;
 
 namespace OutlookMAUI8
@@ -36,11 +38,12 @@ namespace OutlookMAUI8
             builder.Services.AddTransient<PlanService>();
             builder.Services.AddBlazoredLocalStorage();
 
+
             //builder.Services.AddHttpClient("Anonymizer", httpClient =>
             //{
             //    httpClient.BaseAddress = new Uri(Configuration.GetValue<string>("AnonymizerEndpoint")!);
             //});
-
+            builder.Services.AddHttpClient();
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
             builder.Logging.AddDebug();

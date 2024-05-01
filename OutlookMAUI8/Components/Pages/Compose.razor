@@ -1,5 +1,6 @@
 ﻿@inject OfficeService OfficeService;
 @using System.Text.Json;
+@using System.Diagnostics;
 
 
 @* <div>
@@ -101,6 +102,7 @@
                 </div>
         </div>
     </div>
+    @Status
 </section>
 
 
@@ -115,6 +117,7 @@
     private static string? _planPrompt;
     private static string? _customEmailResponsePrompt;
     private bool _isProcessing = false;
+    int emailbodlen = 4000;
 
     // [Inject]
     // NavigationManager NavigationManager { get; set; }
@@ -185,7 +188,7 @@
                 if (!string.IsNullOrEmpty(prompt))
                 {
                     var jsonResponse = await OpenAIService.GetResponse(prompt,newContext);
-                    Console.WriteLine(jsonResponse);
+                    Debug.WriteLine(jsonResponse);
                     Plan = JsonSerializer.Deserialize<PlanModel>(jsonResponse);
                 }
                 else
@@ -197,7 +200,7 @@
         catch (System.Exception ex)
         {
             Status = ex.Message;
-            Console.WriteLine($"Error: {ex}");
+            Debug.WriteLine($"Error: {ex}");
             _loadingEmailPlan = false;
         }
 
@@ -242,7 +245,7 @@
     {
         emailBody = IncludeFullConversation ? emailBody : emailBody.Split("From:")[0];
         var rawEmail = Configuration.GetValue<bool>("Anonymizer:EnableAnonymizer") ? AnonymizeInput(emailBody!).Result : emailBody;
-        return rawEmail?.Length > 8000 ? rawEmail[..8000] : rawEmail!;
+        return rawEmail?.Length > emailbodlen ? rawEmail[..emailbodlen] : rawEmail!;
     }
     private string ConstructPlanPrompt(EmailContext context)
     {

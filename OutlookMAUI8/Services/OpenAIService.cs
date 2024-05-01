@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Blazored.LocalStorage;
 using Azure.AI.OpenAI;
+using System.Text;
+using System.Text.Json;
 
 
 namespace OutlookMAUI8.Services
@@ -8,24 +10,30 @@ namespace OutlookMAUI8.Services
     public class OpenAIService
     {
         private string? url;
+        public int emailbodyLen = 4000;
         private string? useDefault;
         private string? key;
         private string? deployment;
         private string? systemPrompt;
+        private bool isLocal;
         private OpenAIClient _openAIClient;
         private ChatCompletionsOptions _completionOptions;
         private readonly IConfiguration _configuration;
         private readonly ILocalStorageService _localStorage;
+        private readonly HttpClient _client;
+        private readonly LocalLLMModel _localLLMModel;
         public Task Initialize { get; }
         public bool Initiated { get; private set; }
         public OutlookMAUI8.Model.Actions Categories { get; private set; } = new OutlookMAUI8.Model.Actions();
 
-        public OpenAIService(IConfiguration configuration, ILocalStorageService localStorage)
+        public OpenAIService(IConfiguration configuration, ILocalStorageService localStorage, HttpClient client)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _localStorage = localStorage;
             Initialize = InitializeOpenAI();
-
+            _client = client;
+            _client.Timeout = TimeSpan.FromMinutes(3);
+            _localLLMModel = InitializeLocalCompletionOptions();
         }
 
 
@@ -37,7 +45,15 @@ namespace OutlookMAUI8.Services
                 Temperature = 0.6f,
                 FrequencyPenalty = 0.0f,
                 PresencePenalty = 0.0f,
-                NucleusSamplingFactor = 0.95f
+                NucleusSamplingFactor = 0.95f,
+            };
+        }
+        private LocalLLMModel InitializeLocalCompletionOptions()
+        {
+            return new LocalLLMModel
+            {
+                model= "llama2",
+                messages = new()
             };
         }
 
@@ -48,17 +64,42 @@ namespace OutlookMAUI8.Services
             {
                 if (string.IsNullOrWhiteSpace(input))
                     throw new ArgumentException("Input cannot be null or whitespace.", nameof(input));
-                if(rememberResponse)
-                {
-                    _completionOptions.Messages.Clear();
-                }
-                _completionOptions.Messages.Add(new ChatMessage(ChatRole.User, input));
-                ChatCompletions response = await _openAIClient.GetChatCompletionsAsync(deployment, _completionOptions);
-
-                var responseMessage = response.Choices[0].Message;
-                _completionOptions.Messages.Add(responseMessage);
-                return responseMessage.Content;
+                if (!isLocal)
+                    return await GetResponseOpenAI(input, rememberResponse);
+                else
+                    return await GetResponseLocal(input, rememberResponse);
             }
+                return default;
+            }
+
+        private async Task<string> GetResponseLocal2(string input, bool rememberResponse)
+        {
+            if (rememberResponse)
+            {
+                _localLLMModel.messages.Clear();
+            }
+            _localLLMModel.messages.Add(new Messages()
+            {
+                role = "user",
+                content = input
+            });
+            var content = new StringContent(JsonSerializer.Serialize(_localLLMModel), Encoding.UTF8, "application/json");
+            var response = await _client.PostAsync("v1/chat/completions",content);
+            //Ok I'm not returning the content
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        public async Task<string> GetResponseOpenAI(string input, bool rememberResponse = false)
+        {
+            if (rememberResponse)
+            {
+                _completionOptions.Messages.Clear();
+            }
+            _completionOptions.Messages.Add(new ChatMessage(ChatRole.User, input));
+            ChatCompletions response = await _openAIClient.GetChatCompletionsAsync(deployment, _completionOptions);
+               var responseMessage = response.Choices[0].Message;
+               _completionOptions.Messages.Add(responseMessage);
+                return responseMessage.Content;
             return default;
         }
         private async Task InitializeOpenAI()
@@ -89,7 +130,30 @@ namespace OutlookMAUI8.Services
             _openAIClient = new OpenAIClient(endpoint, credentials);
             _completionOptions = InitializeCompletionOptions();
             _completionOptions.Messages.Add(new ChatMessage(ChatRole.System, systemPrompt));
+            _localLLMModel.model = deployment;
+            _localLLMModel.messages.Add(new Messages()
+            {
+                role = "system",
+                content = systemPrompt
+            });
+            _client.BaseAddress = endpoint;
+            isLocal = key.ToLower() == "local";
             Initiated = true;
         }
     }
+
+    class LocalLLMModel
+    {
+        public string model { get; set; }
+        public List<Messages> messages { get; set; }
+
+    }
+
+    class Messages
+    {
+        public string role { get; set; }
+        public string content { get; set; }
+    }
+
+
 }

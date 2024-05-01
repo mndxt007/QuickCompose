@@ -1,6 +1,8 @@
 {
   "profiles": {
     "Windows Machine": {
+      //"commandName": "MsixPackage",
+      //https://www.youtube.com/watch?v=bluImEvcJNw&t=3s
       "commandName": "MsixPackage",
       "nativeDebugging": false
     }
