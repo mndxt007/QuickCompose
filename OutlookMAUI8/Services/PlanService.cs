@@ -53,7 +53,7 @@ namespace OutlookMAUI8.Services
             }
             catch (System.Exception ex)
             {
-                await Console.Out.WriteLineAsync($"Error: {ex}");
+                await Console.Out.WriteLineAsync($"Error: {ex.ToString()}");
             }
 
             return default!;

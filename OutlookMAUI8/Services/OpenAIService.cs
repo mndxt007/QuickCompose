@@ -3,6 +3,8 @@ using Blazored.LocalStorage;
 using Azure.AI.OpenAI;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using OutlookMAUI8.Model;
 
 
 namespace OutlookMAUI8.Services
@@ -72,7 +74,7 @@ namespace OutlookMAUI8.Services
                 return default;
             }
 
-        private async Task<string> GetResponseLocal2(string input, bool rememberResponse)
+        private async Task<string> GetResponseLocal(string input, bool rememberResponse)
         {
             if (rememberResponse)
             {
@@ -85,8 +87,12 @@ namespace OutlookMAUI8.Services
             });
             var content = new StringContent(JsonSerializer.Serialize(_localLLMModel), Encoding.UTF8, "application/json");
             var response = await _client.PostAsync("v1/chat/completions",content);
-            //Ok I'm not returning the content
-            return await response.Content.ReadAsStringAsync();
+            response.EnsureSuccessStatusCode();
+            //var responseContent = await response.Content.ReadAsStringAsync();
+            var responseNode = await JsonNode.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var message = responseNode["choices"][0]["message"]["content"].Deserialize<string>();
+            return message;
+           
         }
 
         public async Task<string> GetResponseOpenAI(string input, bool rememberResponse = false)
