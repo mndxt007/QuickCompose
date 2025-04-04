@@ -1,6 +1,6 @@
 ﻿@using Blazored.LocalStorage;
 @using Microsoft.AspNetCore.Components;
-@inject OfficeService OfficeService;
+@inject OfficeService _officeService;
 
 <div class="container mt-5 dark-mode">
     <div class="text-center">
@@ -49,11 +49,16 @@
     </div>
     <EditForm Model="@Categories" OnValidSubmit="@HandleValidSubmit2">
         <DataAnnotationsValidator />
-        @* <div class="mb-2">
-            <label for="category4" class="col-sm-2 col-form-label">Outlook Folder</label>
-            <InputText @bind-Value="Categories.Folder" id="category4" class="form-control bg-dark text-light" placeholder="IIS Discussions"></InputText>
-            <ValidationMessage For="@(() => Categories.Folder)" />
-        </div> *@
+        <div class="mb-2">
+            <label for="folder" class="col-sm-2 col-form-label">Outlook Folder</label>
+            <InputSelect @bind-Value="Categories.AccountIndex" id="folder" class="form-control bg-dark text-light">
+                @for (int index = 1; index <= accounts.Count; index++)
+                {
+                    <option value="@index">@accounts[index-1]</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => Categories.AccountIndex)" />
+        </div>
         <div class="mb-2">
             <label for="folder" class="col-sm-2 col-form-label">Outlook Folder</label>
             <InputSelect @bind-Value="Categories.Folder" id="folder" class="form-control bg-dark text-light">
@@ -64,7 +69,6 @@
             </InputSelect>
             <ValidationMessage For="@(() => Categories.Folder)" />
         </div>
-
         <div class="mb-2">
             <label for="category4" class="col-sm-2 col-form-label">Category1</label>
             <InputText @bind-Value="Categories.Category1" id="category1" class="form-control bg-dark text-light" placeholder="Category1"></InputText>
@@ -109,11 +113,12 @@
 
     protected OpenAIConfig ConfigData { get; set; } = new OpenAIConfig();
 
-    protected OutlookMAUI8.Model.Actions Categories { get; set; } = new OutlookMAUI8.Model.Actions();
+    protected Setup Categories { get; set; } = new Setup();
 
     protected String Message { get; set; } = default!;
     protected String Message2 { get; set; } = default!;
     List<string> folderNames = new List<string>();
+    private List<string> accounts = new();
 
     protected async Task HandleValidSubmit()
     {
@@ -132,7 +137,8 @@
         await LocalStorage.SetItemAsync("Actions.Category3", Categories.Category3);
         await LocalStorage.SetItemAsync("Actions.Category4", Categories.Category4);
         await LocalStorage.SetItemAsync("Actions.Folder", Categories.Folder);
-        Message2 = "Categories saved!";
+        await LocalStorage.SetItemAsync("Actions.AccountIndex", Categories.AccountIndex);
+        Message2 = "Settings saved!";
         StateHasChanged();
         await Task.Delay(3000);
         NavigationManager.NavigateTo("/", forceLoad: true);
@@ -158,9 +164,10 @@
         Categories.Category3 = await LocalStorage.GetItemAsync<string>("Actions.Category3") ?? Categories.Category3;
         Categories.Category4 = await LocalStorage.GetItemAsync<string>("Actions.Category4") ?? Categories.Category4;
         Categories.Folder = await LocalStorage.GetItemAsync<string>("Actions.Folder") ?? Categories.Folder;
-        NameSpace outlookNamespace = OfficeService.outlookApp.GetNamespace("MAPI");
-        MAPIFolder inboxFolder = outlookNamespace.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
-        foreach (MAPIFolder folder in inboxFolder.Folders)
+        Categories.AccountIndex = await LocalStorage.GetItemAsync<string>("Actions.AccountIndex") ?? "1";
+        _officeService.accountIndex = int.TryParse(Categories.AccountIndex, out var val) ? val : 1;
+        accounts = _officeService.GetAccounts();
+        foreach (MAPIFolder folder in _officeService.ReturnFolders())
         {
             folderNames.Add(folder.Name);
         }

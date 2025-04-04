@@ -4,40 +4,41 @@
 @inject OfficeService outlookCOM
 @using System.Text.Json;
 @using System.Text.Json.Serialization;
+@using System.Diagnostics
 @inject OpenAIService OpenAIService
 @inject PlanService PlanService
 @inject ILocalStorageService _localStorage
 
 
 <div class="accordion" id="Cards">
-            <Accordion Action="@OpenAIService.Categories.Category1"></Accordion>
-            <Accordion Action="@OpenAIService.Categories.Category2"></Accordion>
-            <Accordion Action="@OpenAIService.Categories.Category3"></Accordion>
-            <Accordion Action="@OpenAIService.Categories.Category4"></Accordion>
-            @if (planViewModels.Any())
+    <Accordion Action="@OpenAIService.Categories.Category1"></Accordion>
+    <Accordion Action="@OpenAIService.Categories.Category2"></Accordion>
+    <Accordion Action="@OpenAIService.Categories.Category3"></Accordion>
+    <Accordion Action="@OpenAIService.Categories.Category4"></Accordion>
+    @if (planViewModels.Any())
+    {
+        @foreach (var model in planViewModels)
+        {
+            @if (!string.IsNullOrEmpty(model?.Response) && !string.IsNullOrEmpty(model?.Message?.EmailBody))
             {
-                @foreach (var model in planViewModels)
-                {
-                    @if (!string.IsNullOrEmpty(model?.Response) && !string.IsNullOrEmpty(model?.Message?.EmailBody))
-                    {
-                        <div id="@model.Action" class="accordion-collapse collapse show" aria-labelledby="@String.Concat("H",model.Action)" data-bs-parent="#Cards">
-                            <div class="accordion-body">
-                                <PlanCard PlanModel="model" />
-                            </div>
-                        </div>
-                    }
-                }
-            }
-            @if (inProgress)
-            {
-                <div class="d-flex justify-content-center py-5">
-                    <div class="spinner-border text-light" role="status"></div>
+                <div id="@model.Action" class="accordion-collapse collapse show" aria-labelledby="@String.Concat("H",model.Action)" data-bs-parent="#Cards">
+                    <div class="accordion-body">
+                        <PlanCard PlanModel="model" />
+                    </div>
                 </div>
             }
+        }
+    }
+    @if (inProgress)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-light" role="status"></div>
         </div>
+    }
+</div>
 
- @exceptions
- @*
+@exceptions
+@*
 <div class="container">
     @if(items !=null)
     {
@@ -49,7 +50,7 @@
             </div>
         }
     }
-    
+
 </div> *@
 
 
@@ -57,7 +58,7 @@
     string? exceptions;
     IEnumerable<MailItem>? items;
     //Microsoft.Office.Interop.Outlook.Application outlookApp;
-
+    public int accountIndex = 1;
     private bool inProgress = true;
     private List<PlanModel> planViewModels = new();
     Items? mailItems;
@@ -70,32 +71,52 @@
         inProgress = false;
     }
 
-    public async Task FetchEmailsAsync(int days = 10, int maxemails = 10)
+    public async Task FetchEmailsAsync(int days = 1000, int maxemails = 10)
     {
         try
         {
-            // Microsoft.Office.Interop.Outlook.Application outlookApp = new Microsoft.Office.Interop.Outlook.Application();
-            //outlookApp = outlookCOM.outlookApp;
             NameSpace outlookNamespace = outlookCOM.outlookApp.GetNamespace("MAPI");
-            MAPIFolder inboxFolder = outlookNamespace.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
-            string folder = await _localStorage.GetItemAsync<string>("Actions.Folder") ?? "IIS Discussions";
-            MAPIFolder iisDiscussionsFolder = inboxFolder.Folders[folder]; // Navigate to the "IIS Discussions" folder
+            // Get the accounts
+            Accounts accounts = outlookNamespace.Accounts;
+            Account selectedAccount = null;
+            foreach (Account account in accounts)
+            {
+                Debug.WriteLine($"Account: {account.DisplayName}");
+            }
+            var accountIndex = await _localStorage.GetItemAsync<string>("Actions.AccountIndex") ?? "1";
+            outlookCOM.accountIndex = int.TryParse(accountIndex,out var val) ? val : 1;
+            // Select the first account or prompt the user to select an account
+            if (accounts.Count > 0)
+            {
+                selectedAccount = accounts[accountIndex]; // Select the first account for simplicity
+                // Alternatively, you can prompt the user to select an account
+                // selectedAccount = PromptUserToSelectAccount(accounts);
+            }
 
-            // Refer - https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.outlook._items.restrict?view=outlook-pia#microsoft-office-interop-outlook-items-restrict(system-string)
-            var filter = $"[ReceivedTime] >= '{DateTime.Today.AddDays(-days).ToString("dd/MM/yyyy")}'";
-            //took a lot of time so its better do it in COM
-            // items = inboxFolder.Items.Restrict(filter)
-            //         .OfType<MailItem>()
-            //         .OrderByDescending(mailItem => mailItem.ReceivedTime)
-            //         .Take(10);
-            //mailItems = inboxFolder.Items;
-            mailItems = iisDiscussionsFolder.Items;
-            // Refer - https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.outlook._items.sort?view=outlook-pia
-            mailItems.Sort("[ReceivedTime]", true); // Sort by ReceivedTime in descending order
-            var allItems = mailItems.Restrict(filter).OfType<MailItem>().Take(maxemails);
-           
-            items = allItems.DistinctBy(mailItem => mailItem.ConversationID);
-            //only first email from unique subject
+            if (selectedAccount != null)
+            {
+                // Get the inbox folder for the selected account
+                MAPIFolder inboxFolder = selectedAccount.DeliveryStore.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
+                string folderString = await _localStorage.GetItemAsync<string>("Actions.Folder") ?? String.Empty;
+                MAPIFolder Folder;
+                try
+                {
+                    Folder = String.IsNullOrEmpty(folderString) ? inboxFolder : inboxFolder.Folders[folderString];
+                }
+                catch (System.Exception e)
+                {
+                    Folder = inboxFolder;
+                    Debug.WriteLine(e.ToString());
+                }
+            // Navigate to the "IIS Discussions" folder
+                mailItems = Folder.Items;
+                var filter = $"[ReceivedTime] >= '{DateTime.Today.AddDays(-days).ToString("dd/MM/yyyy")}'";
+                mailItems.Sort("[ReceivedTime]", true); // Sort by ReceivedTime in descending order
+                //https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.outlook._items.restrict?view=outlook-pia#microsoft-office-interop-outlook-items-restrict(system-string
+                var allItems = mailItems.Restrict(filter).OfType<MailItem>().Take(maxemails);
+
+                items = allItems.DistinctBy(mailItem => mailItem.ConversationID);
+            }
         }
         catch (System.Exception e)
         {

@@ -20,7 +20,7 @@ namespace OutlookMAUI8.Services
         [Inject]
         private OfficeService? _officeService { get; set; }
         private readonly ILocalStorageService _localStorage;
-        protected OutlookMAUI8.Model.Actions Categories { get; set; } = new OutlookMAUI8.Model.Actions();
+        protected OutlookMAUI8.Model.Setup Categories { get; set; } = new OutlookMAUI8.Model.Setup();
 
         public PlanService(IConfiguration configuration, IServiceProvider serviceProvider, ILocalStorageService localStorage)
         {
@@ -62,10 +62,10 @@ namespace OutlookMAUI8.Services
         private async Task<string> ConstructPlanPromptAsync(EmailContext message)
         {
             var planPrompt = _configuration.GetValue<string>("Prompts:Plan")!;
-            Categories.Category1 = await _localStorage.GetItemAsync<string>("Actions.Category1") ?? Categories.Category1;
-            Categories.Category2 = await _localStorage.GetItemAsync<string>("Actions.Category2") ?? Categories.Category2;
-            Categories.Category3 = await _localStorage.GetItemAsync<string>("Actions.Category3") ?? Categories.Category3;
-            Categories.Category4 = await _localStorage.GetItemAsync<string>("Actions.Category4") ?? Categories.Category4;
+            Categories.Category1 = await _localStorage.GetItemAsync<string>("Setup.Category1") ?? Categories.Category1;
+            Categories.Category2 = await _localStorage.GetItemAsync<string>("Setup.Category2") ?? Categories.Category2;
+            Categories.Category3 = await _localStorage.GetItemAsync<string>("Setup.Category3") ?? Categories.Category3;
+            Categories.Category4 = await _localStorage.GetItemAsync<string>("Setup.Category4") ?? Categories.Category4;
             if (message != null && !string.IsNullOrEmpty(planPrompt))
             {
                 bool isSentItem = string.Equals(message.SenderEmail ?? "", message.UserEmail ?? "", StringComparison.OrdinalIgnoreCase);

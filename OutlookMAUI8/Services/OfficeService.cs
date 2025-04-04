@@ -8,6 +8,8 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using System.Text.Json;
+using Blazored.LocalStorage;
+using System.Diagnostics;
 
 namespace OutlookMAUI8.Services
 {
@@ -17,139 +19,133 @@ namespace OutlookMAUI8.Services
         Selection selection;
         public Explorer explorer;
         MailItem mailItem;
+        private static EmailContext emailContext = new();
+        public int accountIndex = 1;
 
-        public OfficeService()
+        public OfficeService(ILocalStorageService LocalStorage)
         {
             outlookApp = new Microsoft.Office.Interop.Outlook.Application();
         }
 
+
         public EmailContext GetEmailDataAsync(bool includeFullConversation)
         {
-            var emailContext = new EmailContext();
             try
             {
                 explorer = outlookApp.ActiveExplorer();
-                
-                //explorer.SelectionChange += Explorer_SelectionChange;
                 selection = explorer.Selection;
                 if (selection.Count > 0)
                 {
                     mailItem = selection[1] as MailItem;
-
                 }
+
                 if (mailItem != null)
                 {
-                    // print the subject of the email
-                    emailContext.EntryID = mailItem.EntryID;
-                    emailContext.EmailBody = mailItem.Body;
-                    emailContext.RecievedTime = mailItem.ReceivedTime;
-                    emailContext.Subject = mailItem.Subject;
-                    emailContext.UserName = mailItem.UserProperties.Session.CurrentUser.Name;
-                    emailContext.SenderEmail = mailItem.SenderName;
-                    AddressEntry currentUserAddressEntry = mailItem.UserProperties.Session.CurrentUser.AddressEntry;
-
-                    if (currentUserAddressEntry.Type == "EX")
-                    {
-                        // This is an Exchange user. Use the ExchangeUser object to get the SMTP address.
-                        ExchangeUser exchangeUser = currentUserAddressEntry.GetExchangeUser();
-                        if (exchangeUser != null)
-                        {
-                            emailContext.UserEmail = exchangeUser.PrimarySmtpAddress;
-                        }
-                    }
-                    else
-                    {
-                        // This is not an Exchange user. Just use the address.
-                        emailContext.UserEmail = currentUserAddressEntry.Address;
-                    }
-
-
-                    return emailContext;
-
+                    return PopulateEmailContext(mailItem);
                 }
-
                 else
                 {
                     emailContext.Error = "No email found";
                     return emailContext;
                 }
             }
-            catch (System.Exception ex) 
+            catch (System.Exception)
             {
                 emailContext.Error = "No email found";
                 return emailContext;
             }
-            //return await _jsRuntime.InvokeAsync<string>("getEmailData", includeFullConversation);
-           
-
         }
 
         public EmailContext GetEmailDataAsync(MailItem mailItem, bool includeFullConversation)
         {
-            var emailContext = new EmailContext();
             try
             {
-                
                 if (mailItem != null)
                 {
-                    // print the subject of the email
-                    emailContext.EntryID = mailItem.EntryID;    
-                    emailContext.EmailBody = mailItem.Body;
-                    emailContext.RecievedTime = mailItem.ReceivedTime;
-                    emailContext.Subject = mailItem.Subject;
-                    emailContext.UserName = mailItem.UserProperties.Session.CurrentUser.Name;
-                    emailContext.SenderEmail = mailItem.SenderName;
-                    AddressEntry currentUserAddressEntry = mailItem.UserProperties.Session.CurrentUser.AddressEntry;
-
-                    if (currentUserAddressEntry.Type == "EX")
-                    {
-                        // This is an Exchange user. Use the ExchangeUser object to get the SMTP address.
-                        ExchangeUser exchangeUser = currentUserAddressEntry.GetExchangeUser();
-                        if (exchangeUser != null)
-                        {
-                            emailContext.UserEmail = exchangeUser.PrimarySmtpAddress;
-                        }
-                    }
-                    else
-                    {
-                        // This is not an Exchange user. Just use the address.
-                        emailContext.UserEmail = currentUserAddressEntry.Address;
-                    }
-
-
-                    return emailContext;
-
+                    return PopulateEmailContext(mailItem);
                 }
-
                 else
                 {
-                    emailContext.Error = "No email found";
+                    var emailContext = new EmailContext
+                    {
+                        Error = "No email found"
+                    };
                     return emailContext;
                 }
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
-                emailContext.Error = "No email found";
+                var emailContext = new EmailContext
+                {
+                    Error = "No email found"
+                };
                 return emailContext;
             }
-            //return await _jsRuntime.InvokeAsync<string>("getEmailData", includeFullConversation);
+        }
 
+        private EmailContext PopulateEmailContext(MailItem mailItem)
+        {
+            var emailContext = new EmailContext
+            {
+                EntryID = mailItem.EntryID,
+                EmailBody = mailItem.Body,
+                RecievedTime = mailItem.ReceivedTime,
+                Subject = mailItem.Subject,
+                UserName = mailItem.UserProperties.Session.Accounts[accountIndex].UserName,
+                SenderEmail = mailItem.SenderName,
+                UserEmail = mailItem.UserProperties.Session.Accounts[accountIndex].SmtpAddress
+            };
 
+            return emailContext;
         }
 
 
         public async Task<string> GetUserAsync()
         {
-            var currentUser = outlookApp.Session.CurrentUser;
+            var currentUser = outlookApp.Session.Accounts[accountIndex];
 
             // Return the user's email
-            return currentUser.AddressEntry.Address;
+            return currentUser.SmtpAddress;
         }
 
         //public async Task<string> Html2TextAsync(string html, bool includeFullConversation)
         //{
         //    // return await _jsRuntime.InvokeAsync<string>("html2text", html, includeFullConversation);
         //}
+        public Folders ReturnFolders()
+        {
+            NameSpace outlookNamespace = outlookApp.GetNamespace("MAPI");
+            Accounts accounts = outlookNamespace.Accounts;
+            Account selectedAccount = null;
+            // Select the first account or prompt the user to select an account
+            if (accounts.Count > 0)
+            {
+                selectedAccount = accounts[accountIndex]; // Select the first account for simplicity
+                // Alternatively, you can prompt the user to select an account
+                // selectedAccount = PromptUserToSelectAccount(accounts);
+            }
+
+            if (selectedAccount != null)
+            {
+                // Get the inbox folder for the selected account
+                MAPIFolder inboxFolder = selectedAccount.DeliveryStore.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
+                return inboxFolder.Folders;
+            }
+            else
+            {
+                throw new System.Exception("No account found.");
+            }
+        }
+
+        public List<string> GetAccounts()
+        {
+            List<string> accounts = new List<string>();
+            foreach (Account account in outlookApp.Session.Accounts)
+            {
+                accounts.Add(account.SmtpAddress);
+            }
+            return accounts;
+        }
 
         public async Task ReplyAllAsync(string entryID, string chatGPTResponse)
         {

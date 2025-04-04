@@ -26,7 +26,7 @@ namespace OutlookMAUI8.Services
         private readonly LocalLLMModel _localLLMModel;
         public Task Initialize { get; }
         public bool Initiated { get; private set; }
-        public OutlookMAUI8.Model.Actions Categories { get; private set; } = new OutlookMAUI8.Model.Actions();
+        public OutlookMAUI8.Model.Setup Categories { get; private set; } = new OutlookMAUI8.Model.Setup();
 
         public OpenAIService(IConfiguration configuration, ILocalStorageService localStorage, HttpClient client)
         {
@@ -44,9 +44,9 @@ namespace OutlookMAUI8.Services
             return new ChatCompletionsOptions
             {
                 MaxTokens = 1400,
-                Temperature = 0.6f,
-                FrequencyPenalty = 0.0f,
-                PresencePenalty = 0.0f,
+                Temperature = 0.9f, // Increase temperature for more creativity
+                FrequencyPenalty = 0.5f, // Adjust frequency penalty to reduce repetition
+                PresencePenalty = 0.6f, // Adjust presence penalty to encourage new topics
                 NucleusSamplingFactor = 0.95f,
             };
         }
@@ -125,10 +125,10 @@ namespace OutlookMAUI8.Services
             }
 
             //Setup actions for prompts
-            Categories.Category1 = await _localStorage.GetItemAsync<string>("Actions.Category1") ?? Categories.Category1;
-            Categories.Category2 = await _localStorage.GetItemAsync<string>("Actions.Category2") ?? Categories.Category2;
-            Categories.Category3 = await _localStorage.GetItemAsync<string>("Actions.Category3") ?? Categories.Category3;
-            Categories.Category4 = await _localStorage.GetItemAsync<string>("Actions.Category4") ?? Categories.Category4;
+            Categories.Category1 = await _localStorage.GetItemAsync<string>("Setup.Category1") ?? Categories.Category1;
+            Categories.Category2 = await _localStorage.GetItemAsync<string>("Setup.Category2") ?? Categories.Category2;
+            Categories.Category3 = await _localStorage.GetItemAsync<string>("Setup.Category3") ?? Categories.Category3;
+            Categories.Category4 = await _localStorage.GetItemAsync<string>("Setup.Category4") ?? Categories.Category4;
 
             systemPrompt = _configuration.GetValue<string>("Prompts:SystemPrompt") ?? throw new InvalidOperationException("SystemPrompt not configured");
             var endpoint = new Uri(url);

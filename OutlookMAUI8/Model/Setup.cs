@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace OutlookMAUI8.Model
 {
-    public class Actions
+    public class Setup
     {
         [RegularExpression("^\\S+$", ErrorMessage = "Specify in action in single word (without spaces, use _-)")]
         public string? Category1 { get; set; }
@@ -18,9 +18,10 @@ namespace OutlookMAUI8.Model
         [RegularExpression("^\\S+$", ErrorMessage = "Specify in action in single word (without spaces, use _-)")]
         public string? Category4 { get; set; }
         public string? Folder { get; set; }
+        public string? AccountIndex { get; set; } = "1";
 
 
-        public Actions()
+        public Setup()
         {
             Category1 = "Follow-up";
             Category2 = "Attention-Needed";

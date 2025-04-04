@@ -1,6 +1,8 @@
 ﻿@inject OfficeService OfficeService;
 @using System.Text.Json;
 @using System.Diagnostics;
+@using Blazored.LocalStorage
+@inject ILocalStorageService _localStorage
 
 
 @* <div>
@@ -148,6 +150,8 @@
     {
         _planPrompt = Configuration.GetValue<string>("Prompts:Plan")!;
         _customEmailResponsePrompt = Configuration.GetValue<string>("Prompts:CustomEmailResponse")!;
+        var accountIndex = await _localStorage.GetItemAsync<string>("Actions.AccountIndex") ?? "1";
+        OfficeService.accountIndex =int.TryParse(accountIndex, out var val) ? val : 1;
         EmailContext = await GetEmailContext();
 
         try
@@ -302,6 +306,7 @@
 
         try
         {
+            
             EmailContext = await GetEmailContext();
 
             try
