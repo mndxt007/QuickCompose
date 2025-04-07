@@ -1,0 +1,24 @@
+{
+    "AzureAd": {
+      "Authority": "https://login.microsoftonline.com/common",
+      "ClientId": "",
+      "ValidateAuthority": true
+    },
+    "ChatGpt": {
+      "Endpoint": "",
+      "ApiKey": "",
+      "Instruction": "",
+      "Prompt": "<|im_start|>system\nThe system is an AI that generates email responses on behalf of {0}  \n<|im_end|>\n<|im_start|>user\n{1}\n<|im_end|>\n<|im_start|>assistant"
+    },
+    "Logging": {
+      "LogLevel": {
+        "Default": "Information",
+        "Microsoft": "Warning",
+        "Microsoft.Hosting.Lifetime": "Information"
+      }
+    },
+    "GraphScopes": "User.Read;MailboxSettings.Read;Calendars.ReadWrite;Mail.Read",
+    "AnonymizerEndpoint": "http://localhost:8060",
+    "EnableAnonymizer": "false",
+    "AllowedHosts": "*"
+  }
