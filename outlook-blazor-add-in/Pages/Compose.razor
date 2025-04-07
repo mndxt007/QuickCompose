@@ -1,0 +1,61 @@
+﻿<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-body">
+                <form>
+                    <div class="form-group">
+                        <textarea class="form-control" @bind="CustomInstruction" placeholder="Custom Instructions..." rows="10"></textarea>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" @bind="IncludeFullConversation">
+                        <label class="form-check-label" for="toggle">Full Conversation</label>
+                    </div>
+                    <div class="my-2">
+                        <button @onclick="@(() => GenerateResponse())" class="btn btn-primary" type="button">
+                            @if (loading)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span>Loading...</span>
+                            }
+                            else
+                            {
+                                <span>Generate Response</span>
+                            }
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="samples ms-font-m">
+
+    @if (string.IsNullOrEmpty(ChatGptResponse))
+    {
+        <div class="row">
+            <h3>@Status</h3>
+        </div>
+    }
+    else
+    {
+        <dl class="row text-white">
+            <dt class="col-sm-3">Suggestion</dt>
+            <pre style="white-space: pre-wrap;">@ChatGptResponse</pre>
+        </dl>
+
+        <CopyToClipboard TextToCopy="@ChatGptResponse" />
+        <button @onclick="@(() => ReplyAll(@ChatGptResponse))" class="btn btn-primary" type="button">
+            @if (loading)
+            {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <span>Loading...</span>
+            }
+            else
+            {
+                <span>Reply All</span>
+            }
+        </button>
+
+    }
+</section>

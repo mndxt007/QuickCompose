@@ -1,0 +1,40 @@
+﻿@page "/playground"
+
+<div class="navbar p-4 shadow">
+    <textarea class="form-control mt-4" @bind="Prompt" placeholder="Ask a question..."></textarea>
+    <div class="container justify-content-center my-4">
+        <div class="my-2">
+            <button @onclick="@(() => GenerateResponse())" class="btn btn-primary" type="button">
+                @if (loading)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span>Loading...</span>
+                }
+                else
+                {
+                    <span>Generate Response</span>
+                }
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<section class="samples ms-font-m">
+
+    @if (string.IsNullOrEmpty(ChatGptResponse))
+    {
+        <div class="row">
+            <h3>@Status</h3>
+        </div>
+    }
+    else
+    {
+        <dl class="row">
+            <dt class="col-sm-3">Suggestion</dt>
+            <pre style="white-space: pre-wrap;">@ChatGptResponse</pre>
+        </dl>
+
+        <CopyToClipboard TextToCopy="@ChatGptResponse" />
+    }
+</section>

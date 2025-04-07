@@ -1,0 +1,26 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Authorization;
+@attribute [Authorize]
+
+<div class="col">
+    <ul class="nav nav- nav-fill justify-content-center">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#tab1"><i class="fas fa-home me-2"></i>Compose</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#tab2"><i class="fas fa-user me-2"></i>Plan</a>
+        </li>
+    </ul>
+</div>
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="tab1">
+        <div class="d-flex justify-content-center flex-column">
+            <Compose />
+        </div>
+    </div>
+    <div class="tab-pane fade" id="tab2">
+        <div class="d-flex justify-content-center flex-column">
+            <Plan />
+        </div>
+    </div>
+</div>

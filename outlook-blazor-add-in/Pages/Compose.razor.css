@@ -1,0 +1,30 @@
+.form-control {
+    background-color: #444;
+    color: #fff;
+    border: none;
+}
+
+    .form-control:focus {
+        background-color: #444;
+        color: #fff;
+        box-shadow: none;
+    }
+
+.btn {
+    background-color: #888;
+    color: #fff;
+    border: none;
+    transition: background-color 0.2s ease-in-out;
+}
+
+    .btn:hover {
+        background-color: #aaa;
+    }
+
+.form-check-input:checked {
+    background-color: #888;
+}
+
+.form-check-label {
+    color: #fff;
+}

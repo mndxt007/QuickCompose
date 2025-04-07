@@ -1,0 +1,219 @@
+﻿@using System.Security.Authentication
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.Graph
+@using Microsoft.Graph.Models
+@using QuickCompose.Services;
+@using System.Text.Json;
+@using System.Text.Json.Serialization;
+
+@inject QuickCompose.Graph.GraphClientFactory clientFactory
+@inject OpenAIService openAIService
+@inject IJSRuntime JSRuntime
+
+<AuthorizeView>
+    <Authorized>
+        @if (messages != null && messages.Any())
+        {
+            @foreach (var model in viewModels)
+            {
+                <div class="col">
+                    <div class="card">
+                        <div class="card-body my-3">
+                            <h5 class="card-title text-primary" s>@model.Message.Subject</h5>
+                            <h6 class="card-subtitle mb-2 text-muted"> @model.Message.ReceivedDateTime.GetValueOrDefault().UtcDateTime</h6>
+                            <div class="card child-card">
+                                <div class="card-content">
+                                    <div class="card-body">
+                                        <pre class="card-text p-3 border"> @((MarkupString)model.Message.BodyPreview)</pre>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xl-3 col-sm-6 col-12">
+                                    <div class="card child-card">
+                                        <div class="card-content">
+                                            <div class="card-body">
+                                                <div class="media d-flex justify-content-between">
+                                                    <div class="media-body text-left">
+                                                        <h3 class="text-white">@model.Plan.Action</h3>
+                                                        <span>Action</span>
+                                                    </div>
+                                                    <div class="align-self-center">
+                                                        <i class="fa fa-tasks fa-2x" style="color:springgreen;"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-sm-6 col-12">
+                                    <div class="card child-card">
+                                        <div class="card-content">
+                                            <div class="card-body">
+                                                <div class="media d-flex justify-content-between">
+                                                    <div class="media-body text-left">
+                                                        <h3 class="text-white">@model.Plan.Sentiment</h3>
+                                                        <span>Sentiment</span>
+                                                    </div>
+                                                    <div class="align-self-center">
+                                                        <i class="fa fa-heartbeat fa-2x" style="color:red;"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-sm-6 col-12">
+                                    <div class="card child-card">
+                                        <div class="card-content">
+                                            <div class="card-body">
+                                                <div class="media d-flex justify-content-between">
+                                                    <div class="media-body text-left">
+                                                        <h3 class="text-white">@model.Plan.Priority</h3>
+                                                        <span>Priority</span>
+                                                    </div>
+                                                    <div class="align-self-center">
+                                                        <i class="fa fa-exclamation-triangle fa-2x" style="color:deepskyblue;"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="card child-card">
+                                        <div class="card-content">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Suggested Response</h5>
+                                                <pre>@model.Plan.Response</pre>
+                                                <CopyToClipboard TextToCopy="@model.Plan.Response" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-grid gap-2 col-6 mx-auto pt-2">
+                                    <a class="btn btn-outline-primary" href="@model.Message.WebLink" target="_blank">Open in Browser</a>
+                                    @{
+                                        var link = "https://onesupport.crm.dynamics.com/main.aspx?appid=101acb62-8d00-eb11-a813-000d3a8b3117&pagetype=search&searchText=" + @model.Message.Subject.Split("TrackingID#").LastOrDefault();
+                                    }
+                                    <a class="btn btn-outline-success" href="@link" target="_blank">Open in DfM</a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="d-flex justify-content-center py-5">
+                <div class="spinner-border text-light" role="status"></div>
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin />
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    private GraphServiceClient? graphClient;
+    private IEnumerable<Message> messages = new List<Message>();
+    private IEnumerable<PlanModel> plan = new List<PlanModel>();
+    private List<ViewModel> viewModels = new List<ViewModel>();
+    public IJSObjectReference JSModule { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationStateTask == null)
+        {
+            throw new AuthenticationException(
+                "Unable to access authentication state");
+        }
+
+        messages = await GetEmailThreads();
+        await GetPlanning(messages.Take(5));
+    }
+
+    public async Task<IEnumerable<Message>> GetEmailThreads()
+    {
+        var days = 2;
+        var dateTimeStr = DateTime.UtcNow.Subtract(TimeSpan.FromDays(days)).ToString("yyyy-MM-dd");
+        var filter = $"receivedDateTime gt {dateTimeStr}";
+
+        graphClient = clientFactory.GetAuthenticatedClient();
+
+        var result = new MessageCollectionResponse();
+
+        try
+        {
+            result = await graphClient.Me.Messages.GetAsync();
+        }
+
+        catch (Exception ex)
+        {
+
+        }
+
+        return result.Value.ToList().DistinctBy(x => x.ConversationId);
+    }
+
+    public async Task GetPlanning(IEnumerable<Message> messages)
+    {
+        JSModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Pages/Compose.razor.js");
+
+        var promptTemplate = "<|im_start|>system\nThe system is an AI that generates responses for the user\n<|im_end|>\n<|im_start|>user\n{0}\n<|im_end|>\n<|im_start|>assistant";
+        var instruction = @"My name is Alex. Following is an email in my {0}. Analyze the conversation and generate a JSON object as a response which contains following properties.
+1. Action - String (The action needed for the conversation e.g. Follow-up, Attention Needed, Acknowledgement, etc. If the email is from the Sent Item then do a follow-up)
+2. Response - String (Generate full email reply as alex based on the action.)
+3. Sentiment - String (Indicates the mood and sentiment of the sender)
+4. Priority - Integer  (Determine the action priority based on the sentiment and the messge age on a scale of 1 to 10.)
+Do NOT add any other text other than the Json Response.
+Email starts here\n\n";
+
+
+        foreach (var message in messages)
+        {
+            try
+            {
+                //don't put hardcoded email
+                bool isSentItem = String.Equals(message?.Sender.EmailAddress.Address, "leeg@m365b289354.onmicrosoft.com", StringComparison.OrdinalIgnoreCase);
+                var emailText = await JSModule.InvokeAsync<string>("html2text", message.Body.Content, true);
+                var prompt = String.Format(promptTemplate, string.Concat(String.Format(instruction, isSentItem ? "Sent Item" : "Inbox") + $"The email is from: {message.From.EmailAddress.Name}" + emailText));
+                var jsonResponse = await openAIService.GetResponse(prompt);
+                Console.WriteLine(jsonResponse);
+                var plan = JsonSerializer.Deserialize<PlanModel>(jsonResponse);
+                viewModels.Add(new() { Message = message, Plan = plan });
+                StateHasChanged();
+            }
+            catch (Exception e)
+            {
+
+                Console.WriteLine(e.ToString());
+            }
+            
+        }
+
+       
+    }
+
+    public class PlanModel
+    {
+        public string Action { get; set; }
+        public string Response { get; set; }
+        public string Sentiment { get; set; }
+        public int Priority { get; set; }
+    }
+
+    public class ViewModel
+    {
+        public Message Message { get; set; }
+        public PlanModel Plan { get; set; }
+    }
+}
